@@ -19,3 +19,6 @@ __pycache__
 
 /debug.txt
 
+build
+.cache
+ydb-cpp-sdk
