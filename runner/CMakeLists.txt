@@ -1,24 +1,24 @@
 cmake_minimum_required(VERSION 3.10)
-project(YDB-C)
+project(runner)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory(runner)
-
 list(APPEND CMAKE_PREFIX_PATH "/root/ydb_deps/lib/cmake/ydb-cpp-sdk/" "/root/ydb_deps/")
-find_package(ydb-cpp-sdk REQUIRED)
 
 include_directories(${PROJECT_SOURCE_DIR}
                     "/root/ydb_deps/include"
                     "/workspaces/ydb-c/ydb-cpp-sdk/"                    
 )
-add_library(${PROJECT_NAME} STATIC
-    src/driver.cpp
+
+add_executable(${PROJECT_NAME}
+    main.cpp
 )
+
 file(GLOB YDB_STATIC_LIBS "/root/ydb_deps/lib/*.a")
 file(GLOB YDB_DYNAMIC_LIBS "/root/ydb_deps/lib/*.so")
-target_link_libraries(${PROJECT_NAME} 
+target_link_libraries(runner 
+    PRIVATE YDB-C
     PRIVATE ${YDB_STATIC_LIBS}
     PRIVATE ${YDB_DYNAMIC_LIBS}
 )

@@ -4,8 +4,6 @@
 #include <string>
 #include <memory>
 
-// ---- Internal struct definitions (hidden from C consumers) ----
-
 struct YdbDriverConfig {
     std::string endpoint;
     std::string database;
@@ -128,6 +126,10 @@ void ydb_table_client_free(YdbTableClient* tc) {
 }
 
 // ---- Query Execution (simplified, synchronous with auto-retry) ----
+
+YdbResultSets* wrap_result_sets(const NYdb::NTable::TDataQueryResult& result) {
+    return nullptr;
+}
 
 ydb_status_t ydb_table_execute_query(
     YdbTableClient* tc,

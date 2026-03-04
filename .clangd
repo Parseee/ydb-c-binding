@@ -1,0 +1,6 @@
+Index:
+  Background:
+    Skip:
+      - "*/third_party/*"
+      - "build*"
+      
