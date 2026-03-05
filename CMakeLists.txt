@@ -6,19 +6,27 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(runner)
 
-list(APPEND CMAKE_PREFIX_PATH "/root/ydb_deps/lib/cmake/ydb-cpp-sdk/" "/root/ydb_deps/")
 find_package(ydb-cpp-sdk REQUIRED)
 
 include_directories(${PROJECT_SOURCE_DIR}
                     "/root/ydb_deps/include"
                     "/workspaces/ydb-c/ydb-cpp-sdk/"                    
 )
-add_library(${PROJECT_NAME} STATIC
-    src/driver.cpp
+
+add_library(${PROJECT_NAME} SHARED
+    "src/driver.cpp"
+    "include/ydb.h"
 )
-file(GLOB YDB_STATIC_LIBS "/root/ydb_deps/lib/*.a")
-file(GLOB YDB_DYNAMIC_LIBS "/root/ydb_deps/lib/*.so")
+
+target_compile_options(${PROJECT_NAME}
+    PUBLIC "-fPIC"
+)
+
 target_link_libraries(${PROJECT_NAME} 
-    PRIVATE ${YDB_STATIC_LIBS}
-    PRIVATE ${YDB_DYNAMIC_LIBS}
+    PUBLIC
+    YDB-CPP-SDK::Query
+    YDB-CPP-SDK::Params
+    YDB-CPP-SDK::Driver
 )
+
+# rebuild the project with -fPIC. probably not only ydb-sdk but every dependency

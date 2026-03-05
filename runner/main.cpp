@@ -4,9 +4,8 @@
 #include <iostream>
 
 int main() {
-    // 1. Configure and create driver
     auto config = NYdb::TDriverConfig()
-        .SetEndpoint("grpc://localhost:2136")
+        .SetEndpoint("ydb-local:2136")
         .SetDatabase("/local");
     NYdb::TDriver driver(config);
 
@@ -49,29 +48,6 @@ int main() {
         return 2;
     }
 
-    // 5. Query rows
-    auto queryResult = tableClient.RetryOperationSync(
-        [](NYdb::NTable::TSession session) {
-            return session.ExecuteDataQuery(
-                "SELECT id, name FROM users",
-                NYdb::NTable::TTxControl::BeginTx().CommitTx()
-            ).GetValueSync();
-        }
-    );
-    if (!queryResult.IsSuccess()) {
-        std::cerr << "Query failed: " << queryResult.GetIssues().ToString() << std::endl;
-        return 3;
-    }
-
-    // 6. Iterate results
-    // auto rsParser = queryResult.GetResultSetParser(0);
-    auto tmp = NYdb::NQuery::TExecuteQueryResult(std::move(queryResult));
-    auto rsParser = tmp.GetResultSetParser(0);
-    while (rsParser.TryNextRow()) {
-        uint64_t id = rsParser.ColumnParser(0).GetUint64();
-        std::string name = rsParser.ColumnParser(1).GetUtf8();
-        std::cout << "User: id=" << id << " name=" << name << std::endl;
-    }
-
+    driver.Stop(true);
     return 0;
 }
