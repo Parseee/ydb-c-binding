@@ -1,4 +1,5 @@
 #include "include/internal.h"
+#include "ydb.h"
 
 #include <ydb-cpp-sdk/client/driver/driver.h>
 #include <ydb-cpp-sdk/client/params/params.h>
@@ -6,6 +7,7 @@
 
 #include <memory>
 #include <string>
+#include <ydb-cpp-sdk/client/value/value.h>
 
 thread_local std::string g_last_error;
 void set_last_error(const std::string &msg) { g_last_error = msg; }
@@ -123,42 +125,42 @@ YdbQueryParams *ydb_query_params_create(void) {
 void ydb_query_params_free(YdbQueryParams *p) { delete p; }
 
 ydb_status_t ydb_params_set_utf8(YdbQueryParams *p, const char *name,
-                                       const char *value) {
+                                 const char *value) {
   if (!p || !name || !value)
     return YDB_ERR_BAD_REQUEST;
   p->builder.AddParam(name).Utf8(value).Build();
   return YDB_OK;
 }
 ydb_status_t ydb_params_set_int64(YdbQueryParams *p, const char *name,
-                                        int64_t value) {
+                                  int64_t value) {
   if (!p || !name)
     return YDB_ERR_BAD_REQUEST;
   p->builder.AddParam(name).Int64(value).Build();
   return YDB_OK;
 }
 ydb_status_t ydb_params_set_uint64(YdbQueryParams *p, const char *name,
-                                         uint64_t value) {
+                                   uint64_t value) {
   if (!p || !name)
     return YDB_ERR_BAD_REQUEST;
   p->builder.AddParam(name).Uint64(value).Build();
   return YDB_OK;
 }
 ydb_status_t ydb_params_set_double(YdbQueryParams *p, const char *name,
-                                         double value) {
+                                   double value) {
   if (!p || !name)
     return YDB_ERR_BAD_REQUEST;
   p->builder.AddParam(name).Double(value).Build();
   return YDB_OK;
 }
 ydb_status_t ydb_params_set_bool(YdbQueryParams *p, const char *name,
-                                       int value) {
+                                 int value) {
   if (!p || !name)
     return YDB_ERR_BAD_REQUEST;
   p->builder.AddParam(name).Bool(value != 0).Build();
   return YDB_OK;
 }
 ydb_status_t ydb_params_set_bytes(YdbQueryParams *p, const char *name,
-                                        const void *data, size_t len) {
+                                  const void *data, size_t len) {
   if (!p || !name || !data)
     return YDB_ERR_BAD_REQUEST;
   p->builder.AddParam(name)
@@ -166,38 +168,15 @@ ydb_status_t ydb_params_set_bytes(YdbQueryParams *p, const char *name,
       .Build();
   return YDB_OK;
 }
-
-int ydb_result_sets_count(const YdbResultSets *) { return 0; }
-YdbResultSet *ydb_result_sets_get(YdbResultSets *, int) { return nullptr; }
-void ydb_result_sets_free(YdbResultSets *rs) { delete rs; }
-
-int ydb_result_set_column_count(const YdbResultSet *) { return 0; }
-const char *ydb_result_set_column_name(const YdbResultSet *, int) {
-  return nullptr;
-}
-int ydb_result_set_column_type(const YdbResultSet *, int) { return 0; }
-int ydb_result_set_next_row(YdbResultSet *) { return 0; }
-int ydb_result_set_is_null(YdbResultSet *, int) { return 1; }
-
-ydb_status_t ydb_result_set_get_utf8(YdbResultSet *, int, const char **,
-                                     size_t *) {
-  return YDB_ERR_GENERIC;
-}
-ydb_status_t ydb_result_set_get_int64(YdbResultSet *, int, int64_t *) {
-  return YDB_ERR_GENERIC;
-}
-ydb_status_t ydb_result_set_get_uint64(YdbResultSet *, int, uint64_t *) {
-  return YDB_ERR_GENERIC;
-}
-ydb_status_t ydb_result_set_get_double(YdbResultSet *, int, double *) {
-  return YDB_ERR_GENERIC;
-}
-ydb_status_t ydb_result_set_get_bool(YdbResultSet *, int, int *) {
-  return YDB_ERR_GENERIC;
-}
-ydb_status_t ydb_result_set_get_bytes(YdbResultSet *, int, const void **,
-                                      size_t *) {
-  return YDB_ERR_GENERIC;
+ydb_status_t ydb_params_set_decimal(YdbQueryParams *p, const char *name,
+                                    const char *value, uint8_t precision,
+                                    uint8_t scale) {
+  if (!p || !name || !value)
+    return YDB_ERR_BAD_REQUEST;
+  p->builder.AddParam(name)
+      .Decimal(NYdb::TDecimalValue(value, precision, scale))
+      .Build();
+  return YDB_OK;
 }
 
 // ---------------- YdbParamBuilder --------------
@@ -342,6 +321,66 @@ ydb_status_t ydb_params_add_member_null(YdbParamBuilder *b, const char *field) {
   }
   b->slot->AddMember(field).EmptyOptional();
   return YDB_OK;
+}
+ydb_status_t ydb_params_add_member_decimal(YdbParamBuilder *b,
+                                           const char *field, const char *value,
+                                           uint8_t precision, uint8_t scale) {
+  if (!b || !field || !value) {
+    return YDB_ERR_BAD_REQUEST;
+  }
+  b->slot->AddMember(field).Decimal(
+      NYdb::TDecimalValue(value, precision, scale));
+  return YDB_OK;
+}
+
+int ydb_result_sets_count(const YdbResultSets *) { return 0; }
+YdbResultSet *ydb_result_sets_get(YdbResultSets *, int) { return nullptr; }
+void ydb_result_sets_free(YdbResultSets *rs) { delete rs; }
+
+int ydb_result_set_column_count(const YdbResultSet *) { return 0; }
+const char *ydb_result_set_column_name(const YdbResultSet *, int) {
+  return nullptr;
+}
+ydb_type_t ydb_result_set_column_type(const YdbResultSet *rs, int col_index) {
+  if (!rs || col_index < 0 || col_index >= rs->parser.ColumnsCount())
+    return YDB_TYPE_UNKNOWN;
+
+  const auto &type = rs->resultSet.GetColumnsMeta()[col_index].Type;
+  NYdb::TTypeParser parser(type);
+
+  if (parser.GetKind() == NYdb::TTypeParser::ETypeKind::Optional) {
+    parser.OpenOptional();
+    return YDB_TYPE_OPTIONAL;
+  }
+
+  if (parser.GetKind() == NYdb::TTypeParser::ETypeKind::Primitive)
+    return static_cast<ydb_type_t>(
+        static_cast<uint32_t>(parser.GetPrimitive()));
+
+  return YDB_TYPE_UNKNOWN;
+}
+int ydb_result_set_next_row(YdbResultSet *) { return 0; }
+int ydb_result_set_is_null(YdbResultSet *, int) { return 1; }
+
+ydb_status_t ydb_result_set_get_utf8(YdbResultSet *, int, const char **,
+                                     size_t *) {
+  return YDB_ERR_GENERIC;
+}
+ydb_status_t ydb_result_set_get_int64(YdbResultSet *, int, int64_t *) {
+  return YDB_ERR_GENERIC;
+}
+ydb_status_t ydb_result_set_get_uint64(YdbResultSet *, int, uint64_t *) {
+  return YDB_ERR_GENERIC;
+}
+ydb_status_t ydb_result_set_get_double(YdbResultSet *, int, double *) {
+  return YDB_ERR_GENERIC;
+}
+ydb_status_t ydb_result_set_get_bool(YdbResultSet *, int, int *) {
+  return YDB_ERR_GENERIC;
+}
+ydb_status_t ydb_result_set_get_bytes(YdbResultSet *, int, const void **,
+                                      size_t *) {
+  return YDB_ERR_GENERIC;
 }
 
 } // extern "C"

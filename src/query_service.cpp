@@ -4,7 +4,6 @@
 #include <ydb-cpp-sdk/client/driver/driver.h>
 #include <ydb-cpp-sdk/client/params/params.h>
 #include <ydb-cpp-sdk/client/query/client.h>
-#include <ydb-cpp-sdk/client/query/fwd.h>
 #include <ydb-cpp-sdk/client/query/query.h>
 #include <ydb-cpp-sdk/client/query/tx.h>
 
@@ -45,9 +44,6 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
     return YDB_ERR_BAD_REQUEST;
   }
 
-  // Build params ONCE here, outside the retry lambda.
-  // TParamsBuilder::Build() is destructive — calling it inside a retried
-  // lambda would produce empty params on the second attempt.
   std::optional<NYdb::TParams> sdk_params;
   if (params) {
     sdk_params = const_cast<YdbQueryParams *>(params)->builder.Build();
@@ -144,12 +140,16 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
   return YDB_OK;
 }
 
-ydb_status_t ydb_tx_execute(YdbQueryTransaction *, const char *,
-                            const YdbQueryParams *, YdbResultSets **) {
+ydb_status_t ydb_query_tx_execute(YdbQueryTransaction *, const char *,
+                                  const YdbQueryParams *, YdbResultSets **) {
   return YDB_ERR_GENERIC;
 }
-ydb_status_t ydb_tx_commit(YdbQueryTransaction *) { return YDB_ERR_GENERIC; }
-ydb_status_t ydb_tx_rollback(YdbQueryTransaction *) { return YDB_ERR_GENERIC; }
-void ydb_tx_free(YdbQueryTransaction *) {}
+ydb_status_t ydb_query_tx_commit(YdbQueryTransaction *) {
+  return YDB_ERR_GENERIC;
+}
+ydb_status_t ydb_query_tx_rollback(YdbQueryTransaction *) {
+  return YDB_ERR_GENERIC;
+}
+void ydb_query_tx_free(YdbQueryTransaction *) {}
 
 } // extern "C"

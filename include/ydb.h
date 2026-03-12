@@ -19,6 +19,9 @@ const char *ydb_get_version();
  * Error Handling
  * ============================================================ */
 typedef int32_t ydb_status_t;
+enum ydb_type_t : uint32_t;
+typedef enum ydb_type_t
+    ydb_type_t; // do i need to hide the implementation from user?
 
 #define YDB_OK 0
 #define YDB_ERR_GENERIC -1
@@ -122,6 +125,9 @@ ydb_status_t ydb_params_add_member_utf8(YdbParamBuilder *b, const char *field,
 ydb_status_t ydb_params_add_member_bytes(YdbParamBuilder *b, const char *field,
                                          const void *data, size_t len);
 ydb_status_t ydb_params_add_member_null(YdbParamBuilder *b, const char *field);
+ydb_status_t ydb_params_add_member_decimal(YdbParamBuilder *b,
+                                           const char *field, const char *value,
+                                           uint8_t precision, uint8_t scale);
 
 /* ============================================================
  * Scalar Parameters
@@ -138,6 +144,9 @@ ydb_status_t ydb_params_set_bool(YdbQueryParams *p, const char *name,
                                  int value);
 ydb_status_t ydb_params_set_bytes(YdbQueryParams *p, const char *name,
                                   const void *data, size_t len);
+ydb_status_t ydb_params_set_decimal(YdbQueryParams *p, const char *name,
+                                    const char *value, uint8_t precision,
+                                    uint8_t scale);
 
 /* ============================================================
  * Access Services
@@ -194,7 +203,7 @@ void ydb_result_sets_free(YdbResultSets *rs);
 
 int ydb_result_set_column_count(const YdbResultSet *rs);
 const char *ydb_result_set_column_name(const YdbResultSet *rs, int col_index);
-int ydb_result_set_column_type(const YdbResultSet *rs, int col_index);
+ydb_type_t ydb_result_set_column_type(const YdbResultSet *rs, int col_index);
 
 int ydb_result_set_next_row(YdbResultSet *rs); // 0 if done
 
@@ -209,23 +218,6 @@ ydb_status_t ydb_result_set_get_bool(YdbResultSet *rs, int col, int *out);
 ydb_status_t ydb_result_set_get_bytes(YdbResultSet *rs, int col,
                                       const void **out, size_t *out_len);
 int ydb_result_set_is_null(YdbResultSet *rs, int col);
-
-/* ============================================================
- * YDB Type IDs (for column_type)
- * ============================================================ */
-#define YDB_TYPE_BOOL 1
-#define YDB_TYPE_INT32 2
-#define YDB_TYPE_UINT32 3
-#define YDB_TYPE_INT64 4
-#define YDB_TYPE_UINT64 5
-#define YDB_TYPE_FLOAT 6
-#define YDB_TYPE_DOUBLE 7
-#define YDB_TYPE_UTF8 8
-#define YDB_TYPE_BYTES 9
-#define YDB_TYPE_JSON 10
-#define YDB_TYPE_DATE 11
-#define YDB_TYPE_DATETIME 12
-#define YDB_TYPE_TIMESTAMP 13
 
 #ifdef __cplusplus
 }

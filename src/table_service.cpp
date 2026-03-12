@@ -85,14 +85,14 @@ ydb_status_t ydb_table_execute_query(YdbTableClient *tc, const char *yql,
 }
 
 ydb_status_t ydb_table_begin_tx(YdbTableClient *, ydb_tx_mode_t,
-                                YdbTransaction **) {
+                                YdbTableTransaction **) {
   return YDB_ERR_GENERIC;
 }
-ydb_status_t ydb_tx_execute(YdbTransaction *, const char *,
+ydb_status_t ydb_table_tx_execute(YdbTableTransaction *, const char *,
                             const YdbQueryParams *, YdbResultSets **) {
   return YDB_ERR_GENERIC;
 }
-ydb_status_t ydb_tx_commit(YdbTransaction *) { return YDB_ERR_GENERIC; }
-ydb_status_t ydb_tx_rollback(YdbTransaction *) { return YDB_ERR_GENERIC; }
-void ydb_tx_free(YdbTransaction *) {}
+ydb_status_t ydb_table_tx_commit(YdbTableTransaction *) { return YDB_ERR_GENERIC; }
+ydb_status_t ydb__table_tx_rollback(YdbTableTransaction *) { return YDB_ERR_GENERIC; }
+void ydb_table_tx_free(YdbTableTransaction *) {}
 }
