@@ -67,15 +67,18 @@ int main(void) {
   int32_t id = 52;
   const char *name = "bebebe bububu";
 
-  check(ydb_params_set_uint64(params, "$id", id),
+  check(ydb_query_params_set_uint64(params, "$id", id),
         "params_set_uint64 $id");
-  check(ydb_params_set_utf8(params, "$name", name),
+  check(ydb_query_params_set_utf8(params, "$name", name),
         "params_set_utf8 $name");
 
   st = ydb_table_execute_query(
       tc, "UPSERT INTO users (id, name) VALUES ($id, $name)", params, NULL);
   ydb_query_params_free(params);
   params = NULL;
+
+  params = ydb_query_params_create();
+  YdbParamBuilder* pbuiler = ydb_params_begin_param(params, "$rows");
 
   if (st != YDB_OK) {
     fprintf(stderr, "UPSERT failed (code=%d): %s\n", st,
