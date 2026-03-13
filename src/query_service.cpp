@@ -77,6 +77,14 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
     }
   }();
 
+  const bool is_readonly =
+      (tx_mode == YDB_TX_SNAPSHOT_RO || tx_mode == YDB_TX_STALE_RO ||
+       tx_mode == YDB_TX_ONLINE_RO);
+
+  auto retry_settings =
+      NYdb::NRetry::TRetryOperationSettings().MaxRetries(10).Idempotent(
+          is_readonly);
+
   YdbResultSets *rs_out = nullptr;
   try {
     NYdb::TStatus status = qc->client->RetryQuerySync(
@@ -84,6 +92,7 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
           // On retry: discard any partial results from the previous attempt.
           delete rs_out;
           rs_out = nullptr;
+          g_last_error.clear();
 
           auto result =
               sdk_params.has_value()
