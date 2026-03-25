@@ -1,15 +1,15 @@
-#include "include/internal.h"
+#include "include/internal.hpp"
 
-#include <optional>
 #include <ydb-cpp-sdk/client/driver/driver.h>
 #include <ydb-cpp-sdk/client/params/params.h>
 #include <ydb-cpp-sdk/client/query/client.h>
 #include <ydb-cpp-sdk/client/query/query.h>
 #include <ydb-cpp-sdk/client/query/tx.h>
 
+#include <optional>
 #include <memory>
 #include <string>
-
+ 
 extern "C" {
 
 YdbQueryClient *ydb_query_client_create(YdbDriver *drv) {
@@ -93,6 +93,13 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
           delete rs_out;
           rs_out = nullptr;
           g_last_error.clear();
+          // TODO:
+          // здесь мы закрыты. нельзя ретраить извне
+          // запускаем ретраер
+          // случается ошибка
+          // предоставляем настройки для ретрая
+          // сохраняем данные для принятия решения ретрая
+          // функция принимает решение
 
           auto result =
               sdk_params.has_value()

@@ -20,20 +20,26 @@ const char *ydb_get_version();
  * ============================================================ */
 typedef int32_t ydb_status_t;
 enum ydb_type_t : uint32_t;
-typedef enum ydb_type_t
-    ydb_type_t; // do i need to hide the implementation from user?
+typedef enum ydb_type_t ydb_type_t;
 
-#define YDB_OK 0
-#define YDB_ERR_GENERIC -1
-#define YDB_ERR_CONNECTION -2
-#define YDB_ERR_TIMEOUT -3
-#define YDB_ERR_BAD_REQUEST -4
-#define YDB_ERR_NOT_FOUND -5
-#define YDB_ERR_INTERNAL -6
-#define YDB_ERR_BUFFER_TOO_SMALL -7
-#define YDB_ERR_NO_MORE_RESULTS -8
-#define YDB_ERR_ALREADY_DONE -9
+enum ydb_log_level_t : uint32_t;
+typedef enum ydb_log_level_t ydb_log_level_t;
 
+typedef enum ydb_error_t {
+  YDB_OK = 0,
+  YDB_ERR_GENERIC = -1,
+  YDB_ERR_CONNECTION = -2,
+  YDB_ERR_TIMEOUT = -3,
+  YDB_ERR_BAD_REQUEST = -4,
+  YDB_ERR_NOT_FOUND = -5,
+  YDB_ERR_INTERNAL = -6,
+  YDB_ERR_BUFFER_TOO_SMALL = -7,
+  YDB_ERR_NO_MORE_RESULTS = -8,
+  YDB_ERR_ALREADY_DONE = -9
+} ydb_error_t;
+typedef void (*ydb_log_fn)(ydb_log_level_t level, const char *message,
+                           void *user_data);
+void ydb_set_logger(ydb_log_fn fn, void *user_data);
 const char *ydb_last_error_message(void);
 
 typedef struct YdbDriver YdbDriver;
@@ -49,6 +55,7 @@ typedef struct YdbRow YdbRow;
 typedef struct YdbValue YdbValue;
 typedef struct YdbQueryParams YdbQueryParams;
 typedef struct YdbParamBuilder YdbParamBuilder;
+typedef struct YdbErrorLogger YdbErrorLogger;
 
 /* ============================================================
  * Driver Configuration & Lifecycle
@@ -74,27 +81,6 @@ void ydb_driver_free(YdbDriver *drv); /* blocks until closed */
  * ============================================================ */
 YdbQueryParams *ydb_query_params_create(void);
 void ydb_query_params_free(YdbQueryParams *params);
-
-// TODO: remove this
-/* ============================================================
- * Params Builder — List<Struct<...>> and List<T>
- * ============================================================
- *
- * Usage for List<Struct<...>> (batch upsert):
- *
- *   YdbParamBuilder* b = ydb_params_begin_param(p, "$rows");
- *   ydb_params_begin_list(b);
- *     ydb_params_begin_struct(b);
- *       ydb_params_add_member_int64(b, "id",   1);
- *       ydb_params_add_member_utf8 (b, "name", "Alice");
- *     ydb_params_end_struct(b);
- *     ydb_params_begin_struct(b);
- *       ydb_params_add_member_int64(b, "id",   2);
- *       ydb_params_add_member_utf8 (b, "name", "Bob");
- *     ydb_params_end_struct(b);
- *   ydb_params_end_list(b);
- *   ydb_params_end_param(b);   // b is invalid after this
- */
 
 YdbParamBuilder *ydb_params_begin_param(YdbQueryParams *p, const char *name);
 ydb_status_t ydb_params_end_param(YdbParamBuilder *b);
@@ -197,27 +183,25 @@ void ydb_query_tx_free(YdbQueryTransaction *);
 /* ============================================================
  * Result Iteration
  * ============================================================ */
-int ydb_result_sets_count(const YdbResultSets *rs);
-YdbResultSet *ydb_result_sets_get(YdbResultSets *rs, int index);
-void ydb_result_sets_free(YdbResultSets *rs);
+int ydb_resultsets_count(const YdbResultSets *rs);
+YdbResultSet *ydb_resultsets_get(YdbResultSets *rs, int index);
+void ydb_resultsets_free(YdbResultSets *rs);
 
-int ydb_result_set_column_count(const YdbResultSet *rs);
-const char *ydb_result_set_column_name(const YdbResultSet *rs, int col_index);
-ydb_type_t ydb_result_set_column_type(const YdbResultSet *rs, int col_index);
+int ydb_resultset_column_count(const YdbResultSet *rs);
+const char *ydb_resultset_column_name(const YdbResultSet *rs, int col_index);
+ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index);
 
-int ydb_result_set_next_row(YdbResultSet *rs); // 0 if done
+int ydb_resultset_next_row(YdbResultSet *rs); // 0 if done
 
-/* Value access (by column index for current row) */
-ydb_status_t ydb_result_set_get_utf8(YdbResultSet *rs, int col,
-                                     const char **out, size_t *out_len);
-ydb_status_t ydb_result_set_get_int64(YdbResultSet *rs, int col, int64_t *out);
-ydb_status_t ydb_result_set_get_uint64(YdbResultSet *rs, int col,
-                                       uint64_t *out);
-ydb_status_t ydb_result_set_get_double(YdbResultSet *rs, int col, double *out);
-ydb_status_t ydb_result_set_get_bool(YdbResultSet *rs, int col, int *out);
-ydb_status_t ydb_result_set_get_bytes(YdbResultSet *rs, int col,
-                                      const void **out, size_t *out_len);
-int ydb_result_set_is_null(YdbResultSet *rs, int col);
+ydb_status_t ydb_resultset_get_utf8(YdbResultSet *rs, int col, const char **out,
+                                    size_t *out_len);
+ydb_status_t ydb_resultset_get_int64(YdbResultSet *rs, int col, int64_t *out);
+ydb_status_t ydb_resultset_get_uint64(YdbResultSet *rs, int col, uint64_t *out);
+ydb_status_t ydb_resultset_get_double(YdbResultSet *rs, int col, double *out);
+ydb_status_t ydb_resultset_get_bool(YdbResultSet *rs, int col, int *out);
+ydb_status_t ydb_resultset_get_bytes(YdbResultSet *rs, int col,
+                                     const void **out, size_t *out_len);
+int ydb_resultset_is_null(YdbResultSet *rs, int col);
 
 #ifdef __cplusplus
 }

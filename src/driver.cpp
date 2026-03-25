@@ -1,4 +1,4 @@
-#include "include/internal.h"
+#include "include/internal.hpp"
 #include "ydb.h"
 
 #include <ydb-cpp-sdk/client/driver/driver.h>
@@ -333,15 +333,14 @@ ydb_status_t ydb_params_add_member_decimal(YdbParamBuilder *b,
   return YDB_OK;
 }
 
-int ydb_result_sets_count(const YdbResultSets *) { return 0; }
-YdbResultSet *ydb_result_sets_get(YdbResultSets *, int) { return nullptr; }
-void ydb_result_sets_free(YdbResultSets *rs) { delete rs; }
-
-int ydb_result_set_column_count(const YdbResultSet *) { return 0; }
-const char *ydb_result_set_column_name(const YdbResultSet *, int) {
+int ydb_resultsets_count(const YdbResultSets *) { return 0; }
+YdbResultSet *ydb_resultsets_get(YdbResultSets *, int) { return nullptr; }
+void ydb_resultsets_free(YdbResultSets *rs) { delete rs; }
+int ydb_resultset_column_count(const YdbResultSet *) { return 0; }
+const char *ydb_resultset_column_name(const YdbResultSet *, int) {
   return nullptr;
 }
-ydb_type_t ydb_result_set_column_type(const YdbResultSet *rs, int col_index) {
+ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index) {
   if (!rs || col_index < 0 || col_index >= rs->parser.ColumnsCount())
     return YDB_TYPE_UNKNOWN;
 
@@ -359,26 +358,26 @@ ydb_type_t ydb_result_set_column_type(const YdbResultSet *rs, int col_index) {
 
   return YDB_TYPE_UNKNOWN;
 }
-int ydb_result_set_next_row(YdbResultSet *) { return 0; }
-int ydb_result_set_is_null(YdbResultSet *, int) { return 1; }
+int ydb_resultset_next_row(YdbResultSet *) { return 0; }
+int ydb_resultset_is_null(YdbResultSet *, int) { return 1; }
 
-ydb_status_t ydb_result_set_get_utf8(YdbResultSet *, int, const char **,
+ydb_status_t ydb_resultset_get_utf8(YdbResultSet *, int, const char **,
                                      size_t *) {
   return YDB_ERR_GENERIC;
 }
-ydb_status_t ydb_result_set_get_int64(YdbResultSet *, int, int64_t *) {
+ydb_status_t ydb_resultset_get_int64(YdbResultSet *, int, int64_t *) {
   return YDB_ERR_GENERIC;
 }
-ydb_status_t ydb_result_set_get_uint64(YdbResultSet *, int, uint64_t *) {
+ydb_status_t ydb_resultset_get_uint64(YdbResultSet *, int, uint64_t *) {
   return YDB_ERR_GENERIC;
 }
-ydb_status_t ydb_result_set_get_double(YdbResultSet *, int, double *) {
+ydb_status_t ydb_resultset_get_double(YdbResultSet *, int, double *) {
   return YDB_ERR_GENERIC;
 }
-ydb_status_t ydb_result_set_get_bool(YdbResultSet *, int, int *) {
+ydb_status_t ydb_resultset_get_bool(YdbResultSet *, int, int *) {
   return YDB_ERR_GENERIC;
 }
-ydb_status_t ydb_result_set_get_bytes(YdbResultSet *, int, const void **,
+ydb_status_t ydb_resultset_get_bytes(YdbResultSet *, int, const void **,
                                       size_t *) {
   return YDB_ERR_GENERIC;
 }

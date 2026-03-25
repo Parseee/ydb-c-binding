@@ -1,4 +1,4 @@
-#include "include/internal.h"
+#include "include/internal.hpp"
 
 #include <ydb-cpp-sdk/client/driver/driver.h>
 #include <ydb-cpp-sdk/client/params/params.h>
