@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "ydb_error.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,12 +20,11 @@ const char *ydb_get_version();
 /* ============================================================
  * Error Handling
  * ============================================================ */
-typedef int32_t ydb_status_t;
+
+const char *ydb_last_error_message(void);
+
 enum ydb_type_t : uint32_t;
 typedef enum ydb_type_t ydb_type_t;
-
-enum ydb_log_level_t : uint32_t;
-typedef enum ydb_log_level_t ydb_log_level_t;
 
 typedef enum ydb_error_t {
   YDB_OK = 0,
@@ -37,9 +38,7 @@ typedef enum ydb_error_t {
   YDB_ERR_NO_MORE_RESULTS = -8,
   YDB_ERR_ALREADY_DONE = -9
 } ydb_error_t;
-typedef void (*ydb_log_fn)(ydb_log_level_t level, const char *message,
-                           void *user_data);
-void ydb_set_logger(ydb_log_fn fn, void *user_data);
+
 const char *ydb_last_error_message(void);
 
 typedef struct YdbDriver YdbDriver;
@@ -142,8 +141,8 @@ typedef enum {
   YDB_TX_ONLINE_RO = 2,
   YDB_TX_STALE_RO = 3,
   YDB_TX_SNAPSHOT_RO = 4,
-  YDB_TX_SNAPSHOT_RW = 5, /* NEW: not in Table Service */
-  YDB_TX_NONE = 6,        /* NEW: NoTx mode */
+  YDB_TX_SNAPSHOT_RW = 5,
+  YDB_TX_NONE = 6,
 } ydb_tx_mode_t;
 
 /* ============================================================

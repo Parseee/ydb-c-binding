@@ -38,7 +38,7 @@ struct Version {
   std::string comment;
 };
 
-static const Version YDB_SDK_VERSION = {0, 1, 0, "Nightly"};
+static const Version YDB_SDK_VERSION = {0, 1, 3, "Nightly"};
 const char *ydb_get_version() {
   static const std::string version_str =
       std::to_string(YDB_SDK_VERSION.major_version) + "." +

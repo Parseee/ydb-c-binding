@@ -1,8 +1,8 @@
 #pragma once
 
-#include "include/ydb.h"
+#include "ydb.h"
+#include "ydb_error.h"
 
-#include <cstdint>
 #include <ydb-cpp-sdk/client/driver/driver.h>
 #include <ydb-cpp-sdk/client/params/params.h>
 #include <ydb-cpp-sdk/client/query/client.h>
@@ -112,11 +112,10 @@ extern thread_local std::string g_last_error;
 void set_last_error(const std::string &msg);
 ydb_status_t status_to_ydb_code(NYdb::EStatus s);
 
-static ydb_status_t ydb_fail(ydb_status_t code, ydb_log_level_t lvl,
-                             const std::string &msg) {
+static ydb_status_t ydb_fail(ydb_status_t code, const std::string &msg) {
   set_last_error(msg);
 
-  ydb_log(lvl, msg.c_str());
+  ydb_result_details_print(msg.c_str());
 
   return code;
 }
