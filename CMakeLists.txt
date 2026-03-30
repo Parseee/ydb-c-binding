@@ -10,7 +10,7 @@ add_library(${PROJECT_NAME} SHARED
     "src/driver.cpp"
     "src/table_service.cpp"
     "src/query_service.cpp"
-    "src/result_details.cpp"
+    "src/error.cpp"
 )
 
 target_compile_options(${PROJECT_NAME}
