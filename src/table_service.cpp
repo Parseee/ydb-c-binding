@@ -10,7 +10,7 @@
 extern "C" {
 YdbTableClient *ydb_table_client_create(YdbDriver *drv) {
   if (!drv || !drv->driver) {
-    set_last_error("driver is null");
+    ydb_result_details_print("driver is null");
     return nullptr;
   }
 
@@ -22,7 +22,7 @@ YdbTableClient *ydb_table_client_create(YdbDriver *drv) {
     tc->client = std::make_unique<NYdb::NTable::TTableClient>(*drv->driver);
     tc->parent_driver = drv;
   } catch (const std::exception &e) {
-    set_last_error(e.what());
+    ydb_result_details_print(e.what());
     delete tc;
     return nullptr;
   }
@@ -39,11 +39,11 @@ ydb_status_t ydb_table_execute_scheme(YdbTableClient *tc, const char *yql) {
           return session.ExecuteSchemeQuery(yql).GetValueSync();
         });
     if (!st.IsSuccess()) {
-      set_last_error(st.GetIssues().ToString());
+      ydb_result_details_print(st.GetIssues().ToString().c_str());
       return YDB_ERR_GENERIC;
     }
   } catch (const std::exception &e) {
-    set_last_error(e.what());
+    ydb_result_details_print(e.what());
     return YDB_ERR_INTERNAL;
   }
   return YDB_OK;
@@ -71,11 +71,11 @@ ydb_status_t ydb_table_execute_query(YdbTableClient *tc, const char *yql,
           return session.ExecuteDataQuery(yql, tx).GetValueSync();
         });
     if (!st.IsSuccess()) {
-      set_last_error(st.GetIssues().ToString());
+      ydb_result_details_print(st.GetIssues().ToString().c_str());
       return YDB_ERR_GENERIC;
     }
   } catch (const std::exception &e) {
-    set_last_error(e.what());
+    ydb_result_details_print(e.what());
     return YDB_ERR_INTERNAL;
   }
 

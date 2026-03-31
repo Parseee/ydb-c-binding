@@ -1,4 +1,6 @@
 #include "include/internal.hpp"
+#include "ydb.h"
+#include "ydb_error.h"
 
 #include <ydb-cpp-sdk/client/driver/driver.h>
 #include <ydb-cpp-sdk/client/params/params.h>
@@ -6,21 +8,24 @@
 #include <ydb-cpp-sdk/client/query/query.h>
 #include <ydb-cpp-sdk/client/query/tx.h>
 
-#include <optional>
 #include <memory>
+#include <optional>
 #include <string>
- 
+
 extern "C" {
 
-YdbQueryClient *ydb_query_client_create(YdbDriver *drv) {
+YdbQueryClient *ydb_query_client_create(YdbDriver *drv,
+                                        ydb_result_details_t *rd) {
   if (!drv || !drv->driver) {
-    set_last_error("driver is null");
+    ydb_result_details_set_message(rd, "driver is null");
+    ydb_result_details_set_status(rd, YDB_ERR_INTERNAL);
     return nullptr;
   }
 
   auto *qc = new (std::nothrow) YdbQueryClient();
   if (!qc) {
-    set_last_error("failed to allocate query client");
+    ydb_result_details_set_message(rd, "failed to allocate query client");
+    ydb_result_details_set_status(rd, YDB_ERR_INTERNAL);
     return nullptr;
   }
 
@@ -28,18 +33,22 @@ YdbQueryClient *ydb_query_client_create(YdbDriver *drv) {
     qc->client = std::make_unique<NYdb::NQuery::TQueryClient>(*drv->driver);
     qc->parent_driver = drv;
   } catch (const std::exception &e) {
-    set_last_error(e.what());
+    ydb_result_details_set_message(rd, e.what());
+    ydb_result_details_set_status(rd, YDB_ERR_INTERNAL);
     delete qc;
     return nullptr;
   }
   return qc;
 }
-void ydb_query_client_free(YdbQueryClient *qc) { delete qc; }
+void ydb_query_client_free(YdbQueryClient *qc) {
+  delete qc;
+}
 
 ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
                                ydb_tx_mode_t tx_mode,
                                const YdbQueryParams *params,
-                               YdbResultSets **out_results) {
+                               YdbResultSets **out_results,
+                               ydb_result_details_t *result_details) {
   if (!qc || !yql) {
     return YDB_ERR_BAD_REQUEST;
   }
@@ -92,7 +101,6 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
           // On retry: discard any partial results from the previous attempt.
           delete rs_out;
           rs_out = nullptr;
-          g_last_error.clear();
           // TODO:
           // здесь мы закрыты. нельзя ретраить извне
           // запускаем ретраер
@@ -108,14 +116,14 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
                   : session.ExecuteQuery(yql, tx_control).ExtractValueSync();
 
           if (!result.IsSuccess()) {
-            set_last_error(result.GetIssues().ToString());
+            ydb_result_details_print(result.GetIssues().ToString().c_str());
             return result;
           }
 
           // Collect all result sets from the successful execution.
           auto *rs = new (std::nothrow) YdbResultSets();
           if (!rs) {
-            set_last_error("failed to allocate result sets");
+            ydb_result_details_print("failed to allocate result sets");
             return NYdb::TStatus(NYdb::EStatus::CLIENT_OUT_OF_RANGE,
                                  NYdb::NIssue::TIssues{});
           }
@@ -124,7 +132,7 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
             auto *set = new (std::nothrow) YdbResultSet(std::move(rset));
             if (!set) {
               delete rs;
-              set_last_error("failed to allocate a result set");
+              ydb_result_details_print("failed to allocate a result set");
               return NYdb::TStatus(NYdb::EStatus::CLIENT_OUT_OF_RANGE,
                                    NYdb::NIssue::TIssues{});
             }
@@ -136,14 +144,12 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
 
     if (!status.IsSuccess()) {
       delete rs_out;
-      if (g_last_error.empty()) {
-        set_last_error(status.GetIssues().ToString());
-      }
-      return YDB_ERR_GENERIC;
+      ydb_result_details_print(status.GetIssues().ToString().c_str());
+      return YDB_ERR_INTERNAL;
     }
   } catch (const std::exception &e) {
     delete rs_out;
-    set_last_error(e.what());
+    ydb_result_details_print(e.what());
     return YDB_ERR_INTERNAL;
   }
 
@@ -157,15 +163,19 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
 }
 
 ydb_status_t ydb_query_tx_execute(YdbQueryTransaction *, const char *,
-                                  const YdbQueryParams *, YdbResultSets **) {
+                                  const YdbQueryParams *, YdbResultSets **,
+                                  ydb_result_details_t *result_details) {
   return YDB_ERR_GENERIC;
 }
-ydb_status_t ydb_query_tx_commit(YdbQueryTransaction *) {
+ydb_status_t ydb_query_tx_commit(YdbQueryTransaction *,
+                                 ydb_result_details_t *result_details) {
   return YDB_ERR_GENERIC;
 }
-ydb_status_t ydb_query_tx_rollback(YdbQueryTransaction *) {
+ydb_status_t ydb_query_tx_rollback(YdbQueryTransaction *,
+                                   ydb_result_details_t *result_details) {
   return YDB_ERR_GENERIC;
 }
-void ydb_query_tx_free(YdbQueryTransaction *) {}
+void ydb_query_tx_free(YdbQueryTransaction *,
+                       ydb_result_details_t *result_details) {}
 
 } // extern "C"

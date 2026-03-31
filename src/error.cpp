@@ -65,8 +65,9 @@ static void append_str(char **buf, size_t *len, size_t *cap, const char *s) {
 extern "C" {
 
 void ydb_result_details_init(ydb_result_details_t *d) {
-  if (!d)
+  if (!d) {
     return;
+  }
   d->code = 0;
   d->message = nullptr;
   d->message_len = 0;
@@ -151,14 +152,14 @@ int ydb_is_status_retriable(ydb_status_t sdk_status_code) {
 }
 
 ydb_status_t ydb_result_details_fail(ydb_result_details_t *d, ydb_status_t code,
-                                     int is_retriable, const char *msg) {
+                                     const char *msg) {
   if (d) {
     d->code = code;
     ydb_result_details_set_message(d, msg ? msg : "");
   }
 
   if (msg) {
-    ydb_result_details_print(msg); // uses your existing global logger hook
+    ydb_result_details_print(msg);
   }
 
   return code;
@@ -178,7 +179,6 @@ inline ydb_status_t ydb_fill_from_status(ydb_result_details_t *details,
 
   if (!msg.empty()) {
     ydb_result_details_print(msg.c_str());
-    set_last_error(msg); // keep compatibility with ydb_last_error_message()
   }
 
   return code;
