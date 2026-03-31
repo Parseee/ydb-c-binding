@@ -85,3 +85,5 @@ struct YdbQueryTransaction {
 };
 
 ydb_status_t status_to_ydb_code(NYdb::EStatus s);
+ydb_status_t ydb_fill_from_status(ydb_result_details_t *details,
+                                         const NYdb::TStatus &st);

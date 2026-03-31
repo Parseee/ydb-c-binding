@@ -165,16 +165,17 @@ ydb_status_t ydb_result_details_fail(ydb_result_details_t *d, ydb_status_t code,
   return code;
 }
 
-inline ydb_status_t ydb_fill_from_status(ydb_result_details_t *details,
-                                         const NYdb::TStatus &st) {
+} // extern "C"
+
+ydb_status_t ydb_fill_from_status(ydb_result_details_t *details,
+                                  const NYdb::TStatus &st) {
   const ydb_status_t code = status_to_ydb_code(st.GetStatus());
   const std::string msg = st.GetIssues().ToString();
 
   if (details) {
     ydb_result_details_set_status(details, code);
-    ydb_result_details_set_retriable(
-        details, ydb_is_status_retriable(static_cast<int>(st.GetStatus())));
     ydb_result_details_set_message(details, msg.c_str());
+    return code;
   }
 
   if (!msg.empty()) {
@@ -183,5 +184,3 @@ inline ydb_status_t ydb_fill_from_status(ydb_result_details_t *details,
 
   return code;
 }
-
-} // extern "C"
