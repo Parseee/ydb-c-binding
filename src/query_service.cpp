@@ -2,6 +2,8 @@
 #include "ydb.h"
 #include "ydb_error.h"
 
+#include <cstdint>
+#include <unistd.h>
 #include <ydb-cpp-sdk/client/driver/driver.h>
 #include <ydb-cpp-sdk/client/params/params.h>
 #include <ydb-cpp-sdk/client/query/client.h>
@@ -13,10 +15,25 @@
 #include <string>
 #include <utility>
 
+namespace {
+bool should_retry(YdbQueryRetrySettings *rs, uint32_t attempt) {
+  if (!rs) {
+    return false;
+  }
+  if (attempt >= rs->max_retries) {
+    return false;
+  }
+  rs->current_retries = attempt + 1;
+  if (rs->timeout_ms > 0) {
+    usleep(static_cast<useconds_t>(rs->timeout_ms) * 1000);
+  }
+  return true;
+}
+} // namespace
+
 extern "C" {
 
-YdbQueryClient *ydb_query_client_create(YdbDriver *drv,
-                                        ydb_result_details_t *rd) {
+YdbQueryClient *ydb_query_client_create(YdbDriver *drv, YdbResultDetails *rd) {
   if (!drv || !drv->driver) {
     ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST, "driver is null");
     return nullptr;
@@ -39,13 +56,11 @@ YdbQueryClient *ydb_query_client_create(YdbDriver *drv,
   }
   return qc;
 }
-void ydb_query_client_free(YdbQueryClient *qc) {
-  delete qc;
-}
+void ydb_query_client_free(YdbQueryClient *qc) { delete qc; }
 
 ydb_status_t ydb_query_begin_tx(YdbQueryClient *qc, ydb_tx_mode_t tx_mode,
                                 YdbQueryTransaction **out_tx,
-                                ydb_result_details_t *rd) {
+                                YdbResultDetails *rd) {
   if (!qc || !out_tx) {
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "query client or out_tx is null");
@@ -91,8 +106,8 @@ ydb_status_t ydb_query_begin_tx(YdbQueryClient *qc, ydb_tx_mode_t tx_mode,
   }
 
   auto tx = tx_result.GetTransaction();
-  auto *wrapped = new (std::nothrow)
-      YdbQueryTransaction(std::move(session), std::move(tx));
+  auto *wrapped =
+      new (std::nothrow) YdbQueryTransaction(std::move(session), std::move(tx));
   if (!wrapped) {
     return ydb_result_details_fail(rd, YDB_ERR_INTERNAL,
                                    "failed to allocate query transaction");
@@ -102,11 +117,10 @@ ydb_status_t ydb_query_begin_tx(YdbQueryClient *qc, ydb_tx_mode_t tx_mode,
   return YDB_OK;
 }
 
-ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
-                               ydb_tx_mode_t tx_mode,
-                               const YdbQueryParams *params,
-                               YdbResultSets **out_results,
-                               ydb_result_details_t *result_details) {
+ydb_status_t
+ydb_query_execute(YdbQueryClient *qc, const char *yql, ydb_tx_mode_t tx_mode,
+                  const YdbQueryParams *params, YdbResultSets **out_results,
+                  YdbQueryRetrySettings *rs, YdbResultDetails *result_details) {
   if (!qc || !yql) {
     return ydb_result_details_fail(result_details, YDB_ERR_BAD_REQUEST,
                                    "query client or yql is null");
@@ -145,77 +159,64 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
     }
   }();
 
-  const bool is_readonly =
-      (tx_mode == YDB_TX_SNAPSHOT_RO || tx_mode == YDB_TX_STALE_RO ||
-       tx_mode == YDB_TX_ONLINE_RO);
+  YdbResultSets *resultsets_out = nullptr;
+  if (rs) {
+    rs->current_retries = 0;
+  }
 
-  auto retry_settings =
-      NYdb::NRetry::TRetryOperationSettings().MaxRetries(10).Idempotent(
-          is_readonly);
-
-  YdbResultSets *rs_out = nullptr;
   try {
-    NYdb::TStatus status = qc->client->RetryQuerySync(
-        [&](NYdb::NQuery::TSession session) -> NYdb::TStatus {
-          // On retry: discard any partial results from the previous attempt.
-          delete rs_out;
-          rs_out = nullptr;
-          // TODO:
-          // здесь мы закрыты. нельзя ретраить извне
-          // запускаем ретраер
-          // случается ошибка
-          // предоставляем настройки для ретрая
-          // сохраняем данные для принятия решения ретрая
-          // функция принимает решение
+    for (uint32_t attempt = 0;; ++attempt) {
+      delete resultsets_out;
+      resultsets_out = nullptr;
 
-          auto result =
-              sdk_params.has_value()
-                  ? session.ExecuteQuery(yql, tx_control, *sdk_params)
-                        .ExtractValueSync()
-                  : session.ExecuteQuery(yql, tx_control).ExtractValueSync();
+      auto session_result = qc->client->GetSession().GetValueSync();
+      ydb_status_t code = ydb_fill_from_status(result_details, session_result);
+      if (session_result.IsSuccess()) {
+        auto session = session_result.GetSession();
+        auto result =
+            sdk_params.has_value()
+                ? session.ExecuteQuery(yql, tx_control, *sdk_params)
+                      .ExtractValueSync()
+                : session.ExecuteQuery(yql, tx_control).ExtractValueSync();
 
-          ydb_fill_from_status(result_details, result);
-          if (!result.IsSuccess()) {
-            return result;
-          }
-
-          // Collect all result sets from the successful execution.
-          auto *rs = new (std::nothrow) YdbResultSets();
-          if (!rs) {
-            ydb_result_details_fail(result_details, YDB_ERR_INTERNAL,
-                                    "failed to allocate result sets");
-            return NYdb::TStatus(NYdb::EStatus::CLIENT_OUT_OF_RANGE,
-                                 NYdb::NIssue::TIssues{});
+        code = ydb_fill_from_status(result_details, result);
+        if (result.IsSuccess()) {
+          auto *rs_out = new (std::nothrow) YdbResultSets();
+          if (!rs_out) {
+            delete resultsets_out;
+            return ydb_result_details_fail(result_details, YDB_ERR_INTERNAL,
+                                           "failed to allocate result sets");
           }
 
           for (auto &rset : result.GetResultSets()) {
             auto *set = new (std::nothrow) YdbResultSet(std::move(rset));
             if (!set) {
-              delete rs;
-              ydb_result_details_fail(result_details, YDB_ERR_INTERNAL,
-                                      "failed to allocate a result set");
-              return NYdb::TStatus(NYdb::EStatus::CLIENT_OUT_OF_RANGE,
-                                   NYdb::NIssue::TIssues{});
+              delete rs_out;
+              return ydb_result_details_fail(result_details, YDB_ERR_INTERNAL,
+                                             "failed to allocate a result set");
             }
+            rs_out->sets.push_back(set);
           }
 
-          rs_out = rs;
-          return result;
-        });
+          resultsets_out = rs_out;
+          break;
+        }
+      }
 
-    if (!status.IsSuccess()) {
-      delete rs_out;
-      return ydb_fill_from_status(result_details, status);
+      if (!should_retry(rs, attempt)) {
+        delete resultsets_out;
+        return code;
+      }
     }
   } catch (const std::exception &e) {
-    delete rs_out;
+    delete resultsets_out;
     return ydb_result_details_fail(result_details, YDB_ERR_INTERNAL, e.what());
   }
 
   if (out_results) {
-    *out_results = rs_out;
+    *out_results = resultsets_out;
   } else {
-    delete rs_out;
+    delete resultsets_out;
   }
 
   return YDB_OK;
@@ -224,7 +225,7 @@ ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
 ydb_status_t ydb_query_tx_execute(YdbQueryTransaction *tx, const char *yql,
                                   const YdbQueryParams *params,
                                   YdbResultSets **out_results,
-                                  ydb_result_details_t *result_details) {
+                                  YdbResultDetails *result_details) {
   if (!tx || !yql) {
     return ydb_result_details_fail(result_details, YDB_ERR_BAD_REQUEST,
                                    "transaction or yql is null");
@@ -276,7 +277,7 @@ ydb_status_t ydb_query_tx_execute(YdbQueryTransaction *tx, const char *yql,
   return YDB_OK;
 }
 ydb_status_t ydb_query_tx_commit(YdbQueryTransaction *tx,
-                                 ydb_result_details_t *result_details) {
+                                 YdbResultDetails *result_details) {
   if (!tx) {
     return ydb_result_details_fail(result_details, YDB_ERR_BAD_REQUEST,
                                    "transaction is null");
@@ -289,7 +290,7 @@ ydb_status_t ydb_query_tx_commit(YdbQueryTransaction *tx,
   return ydb_fill_from_status(result_details, result);
 }
 ydb_status_t ydb_query_tx_rollback(YdbQueryTransaction *tx,
-                                   ydb_result_details_t *result_details) {
+                                   YdbResultDetails *result_details) {
   if (!tx) {
     return ydb_result_details_fail(result_details, YDB_ERR_BAD_REQUEST,
                                    "transaction is null");
@@ -302,7 +303,7 @@ ydb_status_t ydb_query_tx_rollback(YdbQueryTransaction *tx,
   return ydb_fill_from_status(result_details, result);
 }
 void ydb_query_tx_free(YdbQueryTransaction *tx,
-                       ydb_result_details_t *result_details) {
+                       YdbResultDetails *result_details) {
   if (!tx) {
     ydb_result_details_fail(result_details, YDB_ERR_BAD_REQUEST,
                             "transaction is null");

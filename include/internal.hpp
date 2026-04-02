@@ -64,22 +64,6 @@ struct YdbResultSets {
   }
 };
 
-/* ── Table Service ───────────────────────────────────────────────── */
-
-struct YdbTableClient {
-  std::unique_ptr<NYdb::NTable::TTableClient> client;
-  YdbDriver *parent_driver;
-};
-
-struct YdbSession {
-  NYdb::NTable::TSession session;
-};
-
-struct YdbTableTransaction {
-  NYdb::NTable::TTransaction tx;
-  YdbTableTransaction(NYdb::NTable::TTransaction t) : tx(std::move(t)) {}
-};
-
 /* ── Query Service ───────────────────────────────────────────────── */
 
 struct YdbQueryClient {
@@ -94,8 +78,14 @@ struct YdbQueryTransaction {
       : tx(std::move(t)), session(std::move(s)) {}
 };
 
+struct YdbQueryRetrySettings {
+  uint32_t max_retries;
+  uint32_t current_retries;
+  uint32_t timeout_ms;
+};
+
 ydb_status_t status_to_ydb_code(NYdb::EStatus s);
-ydb_status_t ydb_fill_from_status(ydb_result_details_t *details,
+ydb_status_t ydb_fill_from_status(YdbResultDetails *details,
                                   const NYdb::TStatus &st);
 
-bool isFatal(ydb_result_details_t *rd);
+bool isFatal(YdbResultDetails *rd);

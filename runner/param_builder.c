@@ -2,21 +2,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char *details_message(const ydb_result_details_t *rd) {
+static const char *details_message(const YdbResultDetails *rd) {
   if (!rd || !rd->message || rd->message_len == 0) {
     return "no details";
   }
   return rd->message;
 }
 
-static void reset_details(ydb_result_details_t *rd) {
+static void reset_details(YdbResultDetails *rd) {
   if (rd) {
     ydb_result_details_reset(rd);
   }
 }
 
 static void check_status(ydb_status_t st, const char *op,
-                         const ydb_result_details_t *rd) {
+                         const YdbResultDetails *rd) {
   if (st != YDB_OK) {
     fprintf(stderr, "%s failed (code=%d): %s\n", op, st, details_message(rd));
     exit((int)(-st));
@@ -25,7 +25,7 @@ static void check_status(ydb_status_t st, const char *op,
 
 int main(void) {
   ydb_status_t st;
-  ydb_result_details_t rd;
+  YdbResultDetails rd;
   YdbDriverConfig *cfg = NULL;
   YdbDriver *drv = NULL;
   YdbQueryClient *qc = NULL;

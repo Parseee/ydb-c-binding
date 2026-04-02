@@ -10,7 +10,6 @@ extern "C" {
 
 typedef int32_t ydb_status_t;
 
-/* FFI-safe per-call result object */
 typedef struct ydb_result_details_t {
   ydb_status_t code;
 
@@ -21,23 +20,20 @@ typedef struct ydb_result_details_t {
   char *context;
   size_t context_len;
   size_t context_cap;
-} ydb_result_details_t;
+} YdbResultDetails;
 
 void ydb_result_details_print(const char *message);
 
-/* details lifecycle */
-void ydb_result_details_init(ydb_result_details_t *rd);
-void ydb_result_details_reset(ydb_result_details_t *rd);
-void ydb_result_details_free(ydb_result_details_t *rd);
+void ydb_result_details_init(YdbResultDetails *rd);
+void ydb_result_details_reset(YdbResultDetails *rd);
+void ydb_result_details_free(YdbResultDetails *rd);
 
-/* details setters */
-void ydb_result_details_set_status(ydb_result_details_t *rd, ydb_status_t code);
-void ydb_result_details_set_message(ydb_result_details_t *rd, const char *msg);
-void ydb_result_details_append_message(ydb_result_details_t *rd, const char *msg);
-void ydb_result_details_set_context(ydb_result_details_t *rd, const char *ctx);
+void ydb_result_details_set_status(YdbResultDetails *rd, ydb_status_t code);
+void ydb_result_details_set_message(YdbResultDetails *rd, const char *msg);
+void ydb_result_details_append_message(YdbResultDetails *rd, const char *msg);
+void ydb_result_details_set_context(YdbResultDetails *rd, const char *ctx);
 
-/* unified fail helper */
-ydb_status_t ydb_result_details_fail(ydb_result_details_t *rd,
+ydb_status_t ydb_result_details_fail(YdbResultDetails *rd,
                                      ydb_status_t code,
                                      const char *msg);
 

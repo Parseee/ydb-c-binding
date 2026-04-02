@@ -64,7 +64,7 @@ static void append_str(char **buf, size_t *len, size_t *cap, const char *s) {
 
 extern "C" {
 
-void ydb_result_details_init(ydb_result_details_t *d) {
+void ydb_result_details_init(YdbResultDetails *d) {
   if (!d) {
     return;
   }
@@ -77,7 +77,7 @@ void ydb_result_details_init(ydb_result_details_t *d) {
   d->context_cap = 0;
 }
 
-void ydb_result_details_reset(ydb_result_details_t *d) {
+void ydb_result_details_reset(YdbResultDetails *d) {
   if (!d) {
     return;
   }
@@ -92,7 +92,7 @@ void ydb_result_details_reset(ydb_result_details_t *d) {
   d->context_len = 0;
 }
 
-void ydb_result_details_free(ydb_result_details_t *d) {
+void ydb_result_details_free(YdbResultDetails *d) {
   if (!d) {
     return;
   }
@@ -104,21 +104,21 @@ void ydb_result_details_free(ydb_result_details_t *d) {
   d->message_cap = d->context_cap = 0;
 }
 
-void ydb_result_details_set_status(ydb_result_details_t *d, ydb_status_t code) {
+void ydb_result_details_set_status(YdbResultDetails *d, ydb_status_t code) {
   if (!d) {
     return;
   }
   d->code = code;
 }
 
-void ydb_result_details_set_message(ydb_result_details_t *d, const char *msg) {
+void ydb_result_details_set_message(YdbResultDetails *d, const char *msg) {
   if (!d) {
     return;
   }
   set_str(&d->message, &d->message_len, &d->message_cap, msg);
 }
 
-void ydb_result_details_append_message(ydb_result_details_t *d,
+void ydb_result_details_append_message(YdbResultDetails *d,
                                        const char *msg) {
   if (!d) {
     return;
@@ -126,7 +126,7 @@ void ydb_result_details_append_message(ydb_result_details_t *d,
   append_str(&d->message, &d->message_len, &d->message_cap, msg);
 }
 
-void ydb_result_details_set_context(ydb_result_details_t *d, const char *ctx) {
+void ydb_result_details_set_context(YdbResultDetails *d, const char *ctx) {
   if (!d) {
     return;
   }
@@ -151,7 +151,7 @@ int ydb_is_status_retriable(ydb_status_t sdk_status_code) {
   }
 }
 
-ydb_status_t ydb_result_details_fail(ydb_result_details_t *d, ydb_status_t code,
+ydb_status_t ydb_result_details_fail(YdbResultDetails *d, ydb_status_t code,
                                      const char *msg) {
   if (d) {
     d->code = code;
@@ -171,9 +171,9 @@ void ydb_result_details_print(const char *err_msg) {
 
 } // extern "C"
 
-bool isFatal(ydb_result_details_t *rd) { return rd->code != YDB_OK; }
+bool isFatal(YdbResultDetails *rd) { return rd->code != YDB_OK; }
 
-ydb_status_t ydb_fill_from_status(ydb_result_details_t *details,
+ydb_status_t ydb_fill_from_status(YdbResultDetails *details,
                                   const NYdb::TStatus &st) {
   const ydb_status_t code = status_to_ydb_code(st.GetStatus());
   const std::string msg = st.GetIssues().ToString();
