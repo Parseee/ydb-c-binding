@@ -8,7 +8,7 @@ find_package(ydb-cpp-sdk REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
     "src/driver.cpp"
-    "src/table_service.cpp"
+    # "src/table_service.cpp" # deprecated
     "src/query_service.cpp"
     "src/error.cpp"
 )
