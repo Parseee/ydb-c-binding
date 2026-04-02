@@ -14,6 +14,17 @@
 #include <vector>
 
 #define RD(code, details) ydb_result_details_fail(rd, code, details)
+#define CHECK_RD(rd)                                                           \
+  do {                                                                         \
+    if (rd == NULL) {                                                          \
+      return YDB_OK;                                                           \
+    }                                                                          \
+    if (isFatal(rd)) {                                                         \
+      std::string error_msg = std::string("from ") + __func__;                 \
+      ydb_result_details_append_message(rd, error_msg.c_str());                \
+      return rd->code;                                                         \
+    }                                                                          \
+  } while (0)
 
 struct YdbDriverConfig {
   std::string endpoint;
@@ -85,4 +96,6 @@ struct YdbQueryTransaction {
 
 ydb_status_t status_to_ydb_code(NYdb::EStatus s);
 ydb_status_t ydb_fill_from_status(ydb_result_details_t *details,
-                                         const NYdb::TStatus &st);
+                                  const NYdb::TStatus &st);
+
+bool isFatal(ydb_result_details_t *rd);

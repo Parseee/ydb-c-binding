@@ -10,16 +10,6 @@
 #include <string>
 #include <ydb-cpp-sdk/client/value/value.h>
 
-bool isFatal(ydb_result_details_t *rd) { return rd->code != YDB_OK; }
-#define CHECK_RD(rd)                                                           \
-  do {                                                                         \
-    if (isFatal(rd)) {                                                         \
-      std::string error_msg = std::string("from ") + __func__;                 \
-      ydb_result_details_append_message(rd, error_msg.c_str());                \
-      return rd->code;                                                         \
-    }                                                                          \
-  } while (0)
-
 ydb_status_t status_to_ydb_code(NYdb::EStatus s) {
   switch (s) {
   case NYdb::EStatus::SUCCESS:

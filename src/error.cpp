@@ -171,6 +171,8 @@ void ydb_result_details_print(const char *err_msg) {
 
 } // extern "C"
 
+bool isFatal(ydb_result_details_t *rd) { return rd->code != YDB_OK; }
+
 ydb_status_t ydb_fill_from_status(ydb_result_details_t *details,
                                   const NYdb::TStatus &st) {
   const ydb_status_t code = status_to_ydb_code(st.GetStatus());
