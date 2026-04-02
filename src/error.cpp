@@ -165,6 +165,10 @@ ydb_status_t ydb_result_details_fail(ydb_result_details_t *d, ydb_status_t code,
   return code;
 }
 
+void ydb_result_details_print(const char *err_msg) {
+  std::cout << "[ydb-c]: " << err_msg << std::endl;
+}
+
 } // extern "C"
 
 ydb_status_t ydb_fill_from_status(ydb_result_details_t *details,

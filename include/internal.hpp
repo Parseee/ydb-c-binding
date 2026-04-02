@@ -24,7 +24,6 @@ struct YdbDriverConfig {
 struct YdbDriver {
   std::unique_ptr<NYdb::TDriverConfig> config;
   std::unique_ptr<NYdb::TDriver> driver;
-  ydb_result_details_t result_details;
 };
 
 struct YdbQueryParams {

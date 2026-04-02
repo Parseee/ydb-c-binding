@@ -77,21 +77,27 @@ typedef struct YdbErrorLogger YdbErrorLogger;
 /* ============================================================
  * Driver Configuration & Lifecycle
  * ============================================================ */
-YdbDriverConfig *ydb_driver_config_create(void);
+YdbDriverConfig *ydb_driver_config_create(ydb_result_details_t *rd);
 void ydb_driver_config_free(YdbDriverConfig *cfg);
 
 ydb_status_t ydb_driver_config_set_endpoint(YdbDriverConfig *cfg,
-                                            const char *endpoint, ydb_result_details_t *rd);
+                                            const char *endpoint,
+                                            ydb_result_details_t *rd);
 ydb_status_t ydb_driver_config_set_database(YdbDriverConfig *cfg,
-                                            const char *database, ydb_result_details_t *rd);
+                                            const char *database,
+                                            ydb_result_details_t *rd);
 ydb_status_t ydb_driver_config_set_auth_token(YdbDriverConfig *cfg,
-                                              const char *token, ydb_result_details_t *rd);
+                                              const char *token,
+                                              ydb_result_details_t *rd);
 /* Future: ydb_driver_config_set_tls_cert, _set_connection_pool_size, etc. */
 
-YdbDriver *ydb_driver_create(const YdbDriverConfig *cfg);
+YdbDriver *ydb_driver_create(const YdbDriverConfig *cfg,
+                             ydb_result_details_t *rd);
 void ydb_driver_free(YdbDriver *drv); /* blocks until closed */
-ydb_status_t ydb_driver_start(YdbDriver *drv, ydb_result_details_t *rd); /* non-blocking init */
-ydb_status_t ydb_driver_wait_ready(YdbDriver *drv, int timeout_ms, ydb_result_details_t *rd);
+ydb_status_t ydb_driver_start(YdbDriver *drv,
+                              ydb_result_details_t *rd); /* non-blocking init */
+ydb_status_t ydb_driver_wait_ready(YdbDriver *drv, int timeout_ms,
+                                   ydb_result_details_t *rd);
 
 /* ============================================================
  * Query Parameters (for parameterized queries)
@@ -99,15 +105,20 @@ ydb_status_t ydb_driver_wait_ready(YdbDriver *drv, int timeout_ms, ydb_result_de
 YdbQueryParams *ydb_query_params_create(ydb_result_details_t *rd);
 void ydb_query_params_free(YdbQueryParams *params, ydb_result_details_t *rd);
 
-YdbParamBuilder *ydb_params_begin_param(YdbQueryParams *p, const char *name, ydb_result_details_t *rd);
+YdbParamBuilder *ydb_params_begin_param(YdbQueryParams *p, const char *name,
+                                        ydb_result_details_t *rd);
 ydb_status_t ydb_params_end_param(YdbParamBuilder *b, ydb_result_details_t *rd);
 
-ydb_status_t ydb_params_begin_list(YdbParamBuilder *b, ydb_result_details_t *rd);
-ydb_status_t ydb_params_add_list_item(YdbParamBuilder *b, ydb_result_details_t *rd);
+ydb_status_t ydb_params_begin_list(YdbParamBuilder *b,
+                                   ydb_result_details_t *rd);
+ydb_status_t ydb_params_add_list_item(YdbParamBuilder *b,
+                                      ydb_result_details_t *rd);
 ydb_status_t ydb_params_end_list(YdbParamBuilder *b, ydb_result_details_t *rd);
 
-ydb_status_t ydb_params_begin_struct(YdbParamBuilder *b, ydb_result_details_t *rd);
-ydb_status_t ydb_params_end_struct(YdbParamBuilder *b, ydb_result_details_t *rd);
+ydb_status_t ydb_params_begin_struct(YdbParamBuilder *b,
+                                     ydb_result_details_t *rd);
+ydb_status_t ydb_params_end_struct(YdbParamBuilder *b,
+                                   ydb_result_details_t *rd);
 
 ydb_status_t ydb_params_add_member_bool(YdbParamBuilder *b, const char *field,
                                         int v, ydb_result_details_t *rd);
@@ -124,13 +135,17 @@ ydb_status_t ydb_params_add_member_float(YdbParamBuilder *b, const char *field,
 ydb_status_t ydb_params_add_member_double(YdbParamBuilder *b, const char *field,
                                           double v, ydb_result_details_t *rd);
 ydb_status_t ydb_params_add_member_utf8(YdbParamBuilder *b, const char *field,
-                                        const char *v, ydb_result_details_t *rd);
+                                        const char *v,
+                                        ydb_result_details_t *rd);
 ydb_status_t ydb_params_add_member_bytes(YdbParamBuilder *b, const char *field,
-                                         const void *data, size_t len, ydb_result_details_t *rd);
-ydb_status_t ydb_params_add_member_null(YdbParamBuilder *b, const char *field, ydb_result_details_t *rd);
+                                         const void *data, size_t len,
+                                         ydb_result_details_t *rd);
+ydb_status_t ydb_params_add_member_null(YdbParamBuilder *b, const char *field,
+                                        ydb_result_details_t *rd);
 ydb_status_t ydb_params_add_member_decimal(YdbParamBuilder *b,
                                            const char *field, const char *value,
-                                           uint8_t precision, uint8_t scale, ydb_result_details_t *rd);
+                                           uint8_t precision, uint8_t scale,
+                                           ydb_result_details_t *rd);
 
 /* ============================================================
  * Scalar Parameters
@@ -143,10 +158,11 @@ ydb_status_t ydb_params_set_uint64(YdbQueryParams *p, const char *name,
                                    uint64_t value, ydb_result_details_t *rd);
 ydb_status_t ydb_params_set_double(YdbQueryParams *p, const char *name,
                                    double value, ydb_result_details_t *rd);
-ydb_status_t ydb_params_set_bool(YdbQueryParams *p, const char *name,
-                                 int value, ydb_result_details_t *rd);
+ydb_status_t ydb_params_set_bool(YdbQueryParams *p, const char *name, int value,
+                                 ydb_result_details_t *rd);
 ydb_status_t ydb_params_set_bytes(YdbQueryParams *p, const char *name,
-                                  const void *data, size_t len, ydb_result_details_t *rd);
+                                  const void *data, size_t len,
+                                  ydb_result_details_t *rd);
 ydb_status_t ydb_params_set_decimal(YdbQueryParams *p, const char *name,
                                     const char *value, uint8_t precision,
                                     uint8_t scale, ydb_result_details_t *rd);
@@ -166,38 +182,60 @@ typedef enum {
 /* ============================================================
  * Query Service
  * ============================================================ */
-YdbQueryClient *ydb_query_client_create(YdbDriver *drv, ydb_result_details_t *rd);
+YdbQueryClient *ydb_query_client_create(YdbDriver *drv,
+                                        ydb_result_details_t *rd);
 void ydb_query_client_free(YdbQueryClient *qc);
 
+// for DDL commands
+ydb_status_t ydb_query_execute(YdbQueryClient *qc, const char *yql,
+                               ydb_tx_mode_t tx_mode,
+                               const YdbQueryParams *params,
+                               YdbResultSets **out_results,
+                               ydb_result_details_t *result_details);
+
 ydb_status_t ydb_query_begin_tx(YdbQueryClient *, ydb_tx_mode_t,
-                                YdbQueryTransaction **, ydb_result_details_t *rd);
+                                YdbQueryTransaction **,
+                                ydb_result_details_t *rd);
 ydb_status_t ydb_query_tx_execute(YdbQueryTransaction *, const char *,
-                                  const YdbQueryParams *, YdbResultSets **, ydb_result_details_t *rd);
-ydb_status_t ydb_query_tx_commit(YdbQueryTransaction *, ydb_result_details_t *rd);
-ydb_status_t ydb_query_tx_rollback(YdbQueryTransaction *, ydb_result_details_t *rd);
+                                  const YdbQueryParams *, YdbResultSets **,
+                                  ydb_result_details_t *rd);
+ydb_status_t ydb_query_tx_commit(YdbQueryTransaction *,
+                                 ydb_result_details_t *rd);
+ydb_status_t ydb_query_tx_rollback(YdbQueryTransaction *,
+                                   ydb_result_details_t *rd);
 void ydb_query_tx_free(YdbQueryTransaction *, ydb_result_details_t *rd);
 
 /* ============================================================
  * Result Iteration
  * ============================================================ */
 int ydb_resultsets_count(const YdbResultSets *rs, ydb_result_details_t *rd);
-YdbResultSet *ydb_resultsets_get(YdbResultSets *rs, int index, ydb_result_details_t *rd);
+YdbResultSet *ydb_resultsets_get(YdbResultSets *rs, int index,
+                                 ydb_result_details_t *rd);
 void ydb_resultsets_free(YdbResultSets *rs, ydb_result_details_t *rd);
 
-int ydb_resultset_column_count(const YdbResultSet *rs, ydb_result_details_t *rd);
-const char *ydb_resultset_column_name(const YdbResultSet *rs, int col_index, ydb_result_details_t *rd);
-ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index, ydb_result_details_t *rd);
+int ydb_resultset_column_count(const YdbResultSet *rs,
+                               ydb_result_details_t *rd);
+const char *ydb_resultset_column_name(const YdbResultSet *rs, int col_index,
+                                      ydb_result_details_t *rd);
+ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index,
+                                     ydb_result_details_t *rd);
 
-int ydb_resultset_next_row(YdbResultSet *rs, ydb_result_details_t *rd); // 0 if done
+int ydb_resultset_next_row(YdbResultSet *rs,
+                           ydb_result_details_t *rd); // 0 if done
 
 ydb_status_t ydb_resultset_get_utf8(YdbResultSet *rs, int col, const char **out,
                                     size_t *out_len, ydb_result_details_t *rd);
-ydb_status_t ydb_resultset_get_int64(YdbResultSet *rs, int col, int64_t *out, ydb_result_details_t *rd);
-ydb_status_t ydb_resultset_get_uint64(YdbResultSet *rs, int col, uint64_t *out, ydb_result_details_t *rd);
-ydb_status_t ydb_resultset_get_double(YdbResultSet *rs, int col, double *out, ydb_result_details_t *rd);
-ydb_status_t ydb_resultset_get_bool(YdbResultSet *rs, int col, int *out, ydb_result_details_t *rd);
+ydb_status_t ydb_resultset_get_int64(YdbResultSet *rs, int col, int64_t *out,
+                                     ydb_result_details_t *rd);
+ydb_status_t ydb_resultset_get_uint64(YdbResultSet *rs, int col, uint64_t *out,
+                                      ydb_result_details_t *rd);
+ydb_status_t ydb_resultset_get_double(YdbResultSet *rs, int col, double *out,
+                                      ydb_result_details_t *rd);
+ydb_status_t ydb_resultset_get_bool(YdbResultSet *rs, int col, int *out,
+                                    ydb_result_details_t *rd);
 ydb_status_t ydb_resultset_get_bytes(YdbResultSet *rs, int col,
-                                     const void **out, size_t *out_len, ydb_result_details_t *rd);
+                                     const void **out, size_t *out_len,
+                                     ydb_result_details_t *rd);
 int ydb_resultset_is_null(YdbResultSet *rs, int col, ydb_result_details_t *rd);
 
 #ifdef __cplusplus

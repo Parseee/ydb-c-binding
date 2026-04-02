@@ -34,7 +34,7 @@ int main(void) {
 
   ydb_result_details_init(&rd);
 
-  cfg = ydb_driver_config_create();
+  cfg = ydb_driver_config_create(&rd);
   if (!cfg) {
     fprintf(stderr, "ydb_driver_config_create failure\n");
     ydb_result_details_free(&rd);
@@ -49,7 +49,7 @@ int main(void) {
   st = ydb_driver_config_set_database(cfg, "/local", &rd);
   check_status(st, "set_database", &rd);
 
-  drv = ydb_driver_create(cfg);
+  drv = ydb_driver_create(cfg, &rd);
   ydb_driver_config_free(cfg);
   cfg = NULL;
   if (!drv) {
@@ -69,26 +69,33 @@ int main(void) {
   }
 
   reset_details(&rd);
-  st = ydb_query_begin_tx(qc, YDB_TX_SERIALIZABLE_RW, &tx, &rd);
-  check_status(st, "begin_tx (DDL)", &rd);
 
-  reset_details(&rd);
-  st = ydb_query_tx_execute(
-      tx,
-      "CREATE TABLE users ("
-      "  id   Uint64,"
-      "  name Utf8,"
-      "  PRIMARY KEY (id)"
-      ");",
-      NULL, NULL, &rd);
-  check_status(st, "execute DDL", &rd);
+  // st = ydb_query_begin_tx(qc, YDB_TX_NONE, &tx, &rd);
+  // check_status(st, "begin_tx (DDL)", &rd);
+  // reset_details(&rd);
+  // st = ydb_query_tx_execute(tx,
+  //                           "CREATE TABLE users ("
+  //                           "  id   Uint64,"
+  //                           "  name Utf8,"
+  //                           "  PRIMARY KEY (id)"
+  //                           ");",
+  //                           NULL, NULL, &rd);
+  // check_status(st, "execute DDL", &rd);
 
-  reset_details(&rd);
-  st = ydb_query_tx_commit(tx, &rd);
-  check_status(st, "commit DDL", &rd);
-  ydb_query_tx_free(tx, &rd);
-  tx = NULL;
-  printf("Table 'users' created (or already exists).\n");
+  // reset_details(&rd);
+  // st = ydb_query_tx_commit(tx, &rd);
+  // check_status(st, "commit DDL", &rd);
+  // ydb_query_tx_free(tx, &rd);
+  // tx = NULL;
+  // printf("Table 'users' created (or already exists).\n");
+
+  ydb_query_execute(qc,
+                    "CREATE TABLE users ("
+                    "  id   Uint64,"
+                    "  name Utf8,"
+                    "  PRIMARY KEY (id)"
+                    ");",
+                    YDB_TX_NONE, NULL, NULL, &rd);
 
   reset_details(&rd);
   params = ydb_query_params_create(&rd);
@@ -117,9 +124,9 @@ int main(void) {
   check_status(st, "begin_tx (UPSERT)", &rd);
 
   reset_details(&rd);
-  st = ydb_query_tx_execute(
-      tx, "UPSERT INTO users (id, name) VALUES ($id, $name)", params, NULL,
-      &rd);
+  st = ydb_query_tx_execute(tx,
+                            "UPSERT INTO users (id, name) VALUES ($id, $name)",
+                            params, NULL, &rd);
   check_status(st, "execute UPSERT", &rd);
 
   reset_details(&rd);
