@@ -121,6 +121,7 @@ ydb_status_t
 ydb_query_execute(YdbQueryClient *qc, const char *yql, ydb_tx_mode_t tx_mode,
                   const YdbQueryParams *params, YdbResultSets **out_results,
                   YdbQueryRetrySettings *rs, YdbResultDetails *result_details) {
+                    // move retry settings to begin_tx
   if (!qc || !yql) {
     return ydb_result_details_fail(result_details, YDB_ERR_BAD_REQUEST,
                                    "query client or yql is null");

@@ -233,18 +233,6 @@ ydb_status_t ydb_params_set_bytes(YdbQueryParams *p, const char *name,
       .Build();
   return YDB_OK;
 }
-ydb_status_t ydb_params_set_decimal(YdbQueryParams *p, const char *name,
-                                    const char *value, uint8_t precision,
-                                    uint8_t scale, YdbResultDetails *rd) {
-  CHECK_RD(rd);
-  if (!p || !name || !value) {
-    return RD(YDB_ERR_BAD_REQUEST, "invalid decimal parameter");
-  }
-  p->builder.AddParam(name)
-      .Decimal(NYdb::TDecimalValue(value, precision, scale))
-      .Build();
-  return YDB_OK;
-}
 
 // ---------------- YdbParamBuilder --------------
 YdbParamBuilder *ydb_params_begin_param(YdbQueryParams *p, const char *name,
@@ -418,19 +406,8 @@ ydb_status_t ydb_params_add_member_null(YdbParamBuilder *b, const char *field,
   b->slot->AddMember(field).EmptyOptional();
   return YDB_OK;
 }
-ydb_status_t ydb_params_add_member_decimal(YdbParamBuilder *b,
-                                           const char *field, const char *value,
-                                           uint8_t precision, uint8_t scale,
-                                           YdbResultDetails *rd) {
-  CHECK_RD(rd);
-  if (!b || !field || !value) {
-    return RD(YDB_ERR_BAD_REQUEST, "invalid decimal member");
-  }
-  b->slot->AddMember(field).Decimal(
-      NYdb::TDecimalValue(value, precision, scale));
-  return YDB_OK;
-}
 
+// we do not know about the count before the whole read
 int ydb_resultsets_count(const YdbResultSets *, YdbResultDetails *rd) {
   CHECK_RD(rd);
   return 0; // TODO: does nothing

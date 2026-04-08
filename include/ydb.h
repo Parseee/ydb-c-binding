@@ -137,10 +137,6 @@ ydb_status_t ydb_params_add_member_bytes(YdbParamBuilder *b, const char *field,
                                          YdbResultDetails *rd);
 ydb_status_t ydb_params_add_member_null(YdbParamBuilder *b, const char *field,
                                         YdbResultDetails *rd);
-ydb_status_t ydb_params_add_member_decimal(YdbParamBuilder *b,
-                                           const char *field, const char *value,
-                                           uint8_t precision, uint8_t scale,
-                                           YdbResultDetails *rd);
 
 /* ============================================================
  * Scalar Parameters
@@ -158,9 +154,6 @@ ydb_status_t ydb_params_set_bool(YdbQueryParams *p, const char *name, int value,
 ydb_status_t ydb_params_set_bytes(YdbQueryParams *p, const char *name,
                                   const void *data, size_t len,
                                   YdbResultDetails *rd);
-ydb_status_t ydb_params_set_decimal(YdbQueryParams *p, const char *name,
-                                    const char *value, uint8_t precision,
-                                    uint8_t scale, YdbResultDetails *rd);
 
 /* ============================================================
  * Access Services
