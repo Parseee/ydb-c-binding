@@ -97,7 +97,7 @@ YdbDriver *ydb_driver_create(const YdbDriverConfig *cfg, YdbResultDetails *rd);
 void ydb_driver_free(YdbDriver *drv); /* blocks until closed */
 ydb_status_t ydb_driver_start(YdbDriver *drv,
                               YdbResultDetails *rd); /* non-blocking init */
-ydb_status_t ydb_driver_wait_ready(YdbDriver *drv, int timeout_ms,
+ydb_status_t ydb_driver_wait_ready(YdbDriver *drv, uint32_t timeout_ms,
                                    YdbResultDetails *rd);
 
 /* ============================================================

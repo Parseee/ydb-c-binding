@@ -2,12 +2,16 @@
 #include "ydb.h"
 #include "ydb_error.h"
 
+#include <cstdint>
 #include <ydb-cpp-sdk/client/driver/driver.h>
 #include <ydb-cpp-sdk/client/params/params.h>
+#include <ydb-cpp-sdk/client/query/client.h>
 #include <ydb-cpp-sdk/client/table/table.h>
 
+#include <chrono>
 #include <memory>
 #include <string>
+#include <thread>
 #include <ydb-cpp-sdk/client/value/value.h>
 
 ydb_status_t status_to_ydb_code(NYdb::EStatus s) {
@@ -129,12 +133,37 @@ ydb_status_t ydb_driver_start(YdbDriver *drv, YdbResultDetails *rd) {
   return YDB_OK;
 }
 
-ydb_status_t ydb_driver_wait_ready(YdbDriver *drv, int, YdbResultDetails *rd) {
+ydb_status_t ydb_driver_wait_ready(YdbDriver *drv, uint32_t timeout_ms,
+                                   YdbResultDetails *rd) {
   CHECK_RD(rd);
   if (!drv) {
     return RD(YDB_ERR_BAD_REQUEST, "driver is null");
   }
-  return YDB_OK;
+  if (!drv->driver) {
+    return RD(YDB_ERR_BAD_REQUEST, "driver handle is not initialized");
+  }
+
+  auto query_client = NYdb::NQuery::TQueryClient(*drv->driver);
+  const auto started = std::chrono::steady_clock::now();
+  const auto timeout = std::chrono::milliseconds(timeout_ms);
+
+  for (;;) {
+    auto session_result = query_client.GetSession().GetValueSync();
+    if (session_result.IsSuccess()) {
+      return YDB_OK;
+    }
+
+    (void)ydb_fill_from_status(rd, session_result);
+
+    const auto elapsed = std::chrono::steady_clock::now() - started;
+    if (elapsed >= timeout) {
+      const std::string timeout_msg = "driver is not ready before timeout (" +
+                                      std::to_string(timeout_ms) + " ms)";
+      return ydb_result_details_fail(rd, YDB_ERR_TIMEOUT, timeout_msg.c_str());
+    }
+    // this thread? or busy loop?
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
 }
 
 void ydb_driver_free(YdbDriver *drv) {

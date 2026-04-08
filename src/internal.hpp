@@ -26,31 +26,31 @@
     }                                                                          \
   } while (0)
 
-#define CHECK_RD_PTR(rd)                                                      \
-  do {                                                                        \
-    if ((rd) && isFatal(rd)) {                                                \
-      std::string error_msg = std::string("from ") + __func__;                \
-      ydb_result_details_append_message(rd, error_msg.c_str());               \
-      return nullptr;                                                         \
-    }                                                                         \
+#define CHECK_RD_PTR(rd)                                                       \
+  do {                                                                         \
+    if ((rd) && isFatal(rd)) {                                                 \
+      std::string error_msg = std::string("from ") + __func__;                 \
+      ydb_result_details_append_message(rd, error_msg.c_str());                \
+      return nullptr;                                                          \
+    }                                                                          \
   } while (0)
 
-#define CHECK_RD_INT(rd, error_ret)                                           \
-  do {                                                                        \
-    if ((rd) && isFatal(rd)) {                                                \
-      std::string error_msg = std::string("from ") + __func__;                \
-      ydb_result_details_append_message(rd, error_msg.c_str());               \
-      return (error_ret);                                                     \
-    }                                                                         \
+#define CHECK_RD_INT(rd, error_ret)                                            \
+  do {                                                                         \
+    if ((rd) && isFatal(rd)) {                                                 \
+      std::string error_msg = std::string("from ") + __func__;                 \
+      ydb_result_details_append_message(rd, error_msg.c_str());                \
+      return (error_ret);                                                      \
+    }                                                                          \
   } while (0)
 
-#define CHECK_RD_VOID(rd)                                                     \
-  do {                                                                        \
-    if ((rd) && isFatal(rd)) {                                                \
-      std::string error_msg = std::string("from ") + __func__;                \
-      ydb_result_details_append_message(rd, error_msg.c_str());               \
-      return;                                                                 \
-    }                                                                         \
+#define CHECK_RD_VOID(rd)                                                      \
+  do {                                                                         \
+    if ((rd) && isFatal(rd)) {                                                 \
+      std::string error_msg = std::string("from ") + __func__;                 \
+      ydb_result_details_append_message(rd, error_msg.c_str());                \
+      return;                                                                  \
+    }                                                                          \
   } while (0)
 
 struct YdbDriverConfig {
@@ -124,14 +124,10 @@ ydb_status_t ydb_fill_from_status(YdbResultDetails *details,
 
 bool isFatal(YdbResultDetails *rd);
 
-void ydb_result_details_set_status(
-    YdbResultDetails *rd, ydb_status_t code); // must be non user accessible
-void ydb_result_details_set_message(
-    YdbResultDetails *rd,
-    const std::string &msg); // must be non user accessible
-void ydb_result_details_append_message(
-    YdbResultDetails *rd,
-    const std::string &msg); // must be non user accessible
-void ydb_result_details_set_context(
-    YdbResultDetails *rd,
-    const std::string &ctx); // must be non user accessible
+void ydb_result_details_set_status(YdbResultDetails *rd, ydb_status_t code);
+void ydb_result_details_set_message(YdbResultDetails *rd,
+                                    const std::string &msg);
+void ydb_result_details_append_message(YdbResultDetails *rd,
+                                       const std::string &msg);
+void ydb_result_details_set_context(YdbResultDetails *rd,
+                                    const std::string &ctx);
