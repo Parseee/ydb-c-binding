@@ -26,6 +26,33 @@
     }                                                                          \
   } while (0)
 
+#define CHECK_RD_PTR(rd)                                                      \
+  do {                                                                        \
+    if ((rd) && isFatal(rd)) {                                                \
+      std::string error_msg = std::string("from ") + __func__;                \
+      ydb_result_details_append_message(rd, error_msg.c_str());               \
+      return nullptr;                                                         \
+    }                                                                         \
+  } while (0)
+
+#define CHECK_RD_INT(rd, error_ret)                                           \
+  do {                                                                        \
+    if ((rd) && isFatal(rd)) {                                                \
+      std::string error_msg = std::string("from ") + __func__;                \
+      ydb_result_details_append_message(rd, error_msg.c_str());               \
+      return (error_ret);                                                     \
+    }                                                                         \
+  } while (0)
+
+#define CHECK_RD_VOID(rd)                                                     \
+  do {                                                                        \
+    if ((rd) && isFatal(rd)) {                                                \
+      std::string error_msg = std::string("from ") + __func__;                \
+      ydb_result_details_append_message(rd, error_msg.c_str());               \
+      return;                                                                 \
+    }                                                                         \
+  } while (0)
+
 struct YdbDriverConfig {
   std::string endpoint;
   std::string database;
@@ -51,6 +78,7 @@ struct YdbParamBuilder {
 struct YdbResultSet {
   NYdb::TResultSet resultSet;
   NYdb::TResultSetParser parser;
+  std::string scratch;
 
   explicit YdbResultSet(NYdb::TResultSet rs)
       : resultSet(std::move(rs)), parser(resultSet) {}
@@ -84,8 +112,26 @@ struct YdbQueryRetrySettings {
   uint32_t timeout_ms;
 };
 
+struct YdbResultDetails {
+  ydb_status_t code;
+  std::string message;
+  std::string context;
+};
+
 ydb_status_t status_to_ydb_code(NYdb::EStatus s);
 ydb_status_t ydb_fill_from_status(YdbResultDetails *details,
                                   const NYdb::TStatus &st);
 
 bool isFatal(YdbResultDetails *rd);
+
+void ydb_result_details_set_status(
+    YdbResultDetails *rd, ydb_status_t code); // must be non user accessible
+void ydb_result_details_set_message(
+    YdbResultDetails *rd,
+    const std::string &msg); // must be non user accessible
+void ydb_result_details_append_message(
+    YdbResultDetails *rd,
+    const std::string &msg); // must be non user accessible
+void ydb_result_details_set_context(
+    YdbResultDetails *rd,
+    const std::string &ctx); // must be non user accessible

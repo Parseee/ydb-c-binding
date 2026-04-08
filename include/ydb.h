@@ -74,6 +74,7 @@ typedef struct YdbQueryParams YdbQueryParams;
 typedef struct YdbParamBuilder YdbParamBuilder;
 typedef struct YdbErrorLogger YdbErrorLogger;
 typedef struct YdbQueryRetrySettings YdbQueryRetrySettings;
+typedef struct YdbResultDetails YdbResultDetails;
 
 /* ============================================================
  * Driver Configuration & Lifecycle

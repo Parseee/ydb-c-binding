@@ -1,4 +1,4 @@
-#include "include/internal.hpp"
+#include "internal.hpp"
 #include "ydb.h"
 #include "ydb_error.h"
 
@@ -49,13 +49,14 @@ const char *ydb_get_version() {
 }
 
 YdbDriverConfig *ydb_driver_config_create(YdbResultDetails *rd) {
-  // TODO: workaround for funcs that return non status codes
-  if (isFatal(rd)) {
-    std::string error_msg = std::string("from ") + __func__;
-    ydb_result_details_append_message(rd, error_msg.c_str());
+  CHECK_RD_PTR(rd);
+  auto *cfg = new (std::nothrow) YdbDriverConfig();
+  if (!cfg) {
+    ydb_result_details_fail(rd, YDB_ERR_INTERNAL,
+                            "failed to allocate driver config");
     return nullptr;
   }
-  return new (std::nothrow) YdbDriverConfig();
+  return cfg;
 }
 void ydb_driver_config_free(YdbDriverConfig *cfg) { delete cfg; }
 
@@ -89,14 +90,8 @@ ydb_status_t ydb_driver_config_set_auth_token(YdbDriverConfig *cfg,
   return YDB_OK;
 }
 
-YdbDriver *ydb_driver_create(const YdbDriverConfig *cfg,
-                             YdbResultDetails *rd) {
-  // TODO: workaround for funcs that return non status codes
-  if (isFatal(rd)) {
-    std::string error_msg = std::string("from ") + __func__;
-    ydb_result_details_append_message(rd, error_msg.c_str());
-    return nullptr;
-  }
+YdbDriver *ydb_driver_create(const YdbDriverConfig *cfg, YdbResultDetails *rd) {
+  CHECK_RD_PTR(rd);
 
   if (!cfg) {
     ydb_result_details_fail(rd, YDB_ERR_INTERNAL, "Driver Config is not set");
@@ -134,8 +129,7 @@ ydb_status_t ydb_driver_start(YdbDriver *drv, YdbResultDetails *rd) {
   return YDB_OK;
 }
 
-ydb_status_t ydb_driver_wait_ready(YdbDriver *drv, int,
-                                   YdbResultDetails *rd) {
+ydb_status_t ydb_driver_wait_ready(YdbDriver *drv, int, YdbResultDetails *rd) {
   CHECK_RD(rd);
   if (!drv) {
     return RD(YDB_ERR_BAD_REQUEST, "driver is null");
@@ -154,12 +148,7 @@ void ydb_driver_free(YdbDriver *drv) {
 }
 
 YdbQueryParams *ydb_query_params_create(YdbResultDetails *rd) {
-  // TODO: workaround for funcs that return non status codes
-  if (isFatal(rd)) {
-    std::string error_msg = std::string("from ") + __func__;
-    ydb_result_details_append_message(rd, error_msg.c_str());
-    return nullptr;
-  }
+  CHECK_RD_PTR(rd);
 
   auto *params = new (std::nothrow) YdbQueryParams();
   if (!params) {
@@ -251,8 +240,7 @@ YdbParamBuilder *ydb_params_begin_param(YdbQueryParams *p, const char *name,
   return b;
 }
 
-ydb_status_t ydb_params_end_param(YdbParamBuilder *b,
-                                  YdbResultDetails *rd) {
+ydb_status_t ydb_params_end_param(YdbParamBuilder *b, YdbResultDetails *rd) {
   CHECK_RD(rd);
   if (!b) {
     return RD(YDB_ERR_BAD_REQUEST, "param builder is null");
@@ -262,8 +250,7 @@ ydb_status_t ydb_params_end_param(YdbParamBuilder *b,
   return YDB_OK;
 }
 
-ydb_status_t ydb_params_begin_list(YdbParamBuilder *b,
-                                   YdbResultDetails *rd) {
+ydb_status_t ydb_params_begin_list(YdbParamBuilder *b, YdbResultDetails *rd) {
   CHECK_RD(rd);
   if (!b || !b->slot) {
     return RD(YDB_ERR_BAD_REQUEST, "list builder is null");
@@ -291,8 +278,7 @@ ydb_status_t ydb_params_end_list(YdbParamBuilder *b, YdbResultDetails *rd) {
   return YDB_OK;
 }
 
-ydb_status_t ydb_params_begin_struct(YdbParamBuilder *b,
-                                     YdbResultDetails *rd) {
+ydb_status_t ydb_params_begin_struct(YdbParamBuilder *b, YdbResultDetails *rd) {
   CHECK_RD(rd);
   if (!b || !b->slot) {
     return RD(YDB_ERR_BAD_REQUEST, "struct builder is null");
@@ -301,8 +287,7 @@ ydb_status_t ydb_params_begin_struct(YdbParamBuilder *b,
   return YDB_OK;
 }
 
-ydb_status_t ydb_params_end_struct(YdbParamBuilder *b,
-                                   YdbResultDetails *rd) {
+ydb_status_t ydb_params_end_struct(YdbParamBuilder *b, YdbResultDetails *rd) {
   CHECK_RD(rd);
   if (!b || !b->slot) {
     return RD(YDB_ERR_BAD_REQUEST, "struct builder is null");
@@ -330,8 +315,7 @@ ydb_status_t ydb_params_add_member_int32(YdbParamBuilder *b, const char *field,
   return YDB_OK;
 }
 ydb_status_t ydb_params_add_member_uint32(YdbParamBuilder *b, const char *field,
-                                          uint32_t v,
-                                          YdbResultDetails *rd) {
+                                          uint32_t v, YdbResultDetails *rd) {
   CHECK_RD(rd);
   if (!b || !field) {
     return RD(YDB_ERR_BAD_REQUEST, "invalid uint32 member");
@@ -349,8 +333,7 @@ ydb_status_t ydb_params_add_member_int64(YdbParamBuilder *b, const char *field,
   return YDB_OK;
 }
 ydb_status_t ydb_params_add_member_uint64(YdbParamBuilder *b, const char *field,
-                                          uint64_t v,
-                                          YdbResultDetails *rd) {
+                                          uint64_t v, YdbResultDetails *rd) {
   CHECK_RD(rd);
   if (!b || !field) {
     return RD(YDB_ERR_BAD_REQUEST, "invalid uint64 member");
@@ -377,8 +360,7 @@ ydb_status_t ydb_params_add_member_double(YdbParamBuilder *b, const char *field,
   return YDB_OK;
 }
 ydb_status_t ydb_params_add_member_utf8(YdbParamBuilder *b, const char *field,
-                                        const char *v,
-                                        YdbResultDetails *rd) {
+                                        const char *v, YdbResultDetails *rd) {
   CHECK_RD(rd);
   if (!b || !field || !v) {
     return RD(YDB_ERR_BAD_REQUEST, "invalid utf8 member");
@@ -407,24 +389,40 @@ ydb_status_t ydb_params_add_member_null(YdbParamBuilder *b, const char *field,
   return YDB_OK;
 }
 
-// we do not know about the count before the whole read
-int ydb_resultsets_count(const YdbResultSets *, YdbResultDetails *rd) {
-  CHECK_RD(rd);
-  return 0; // TODO: does nothing
+int ydb_resultsets_count(const YdbResultSets *rs, YdbResultDetails *rd) {
+  CHECK_RD_INT(rd, -1);
+  if (!rs) {
+    return RD(YDB_ERR_BAD_REQUEST, "result sets is null");
+  }
+  return static_cast<int>(rs->sets.size());
 }
-YdbResultSet *ydb_resultsets_get(YdbResultSets *, int,
+YdbResultSet *ydb_resultsets_get(YdbResultSets *rs, int index,
                                  YdbResultDetails *rd) {
-  return nullptr; // TODO: does nothing
+  CHECK_RD_PTR(rd);
+  if (!rs || index < 0 || static_cast<size_t>(index) >= rs->sets.size()) {
+    RD(YDB_ERR_BAD_REQUEST, "result set index is out of range");
+    return nullptr;
+  }
+  return rs->sets[static_cast<size_t>(index)];
 }
-void ydb_resultsets_free(YdbResultSets *rs, YdbResultDetails *rd) {
-  delete rs;
+void ydb_resultsets_free(YdbResultSets *rs, YdbResultDetails *rd) { delete rs; }
+int ydb_resultset_column_count(const YdbResultSet *rs, YdbResultDetails *rd) {
+  CHECK_RD_INT(rd, -1);
+  if (!rs) {
+    return RD(YDB_ERR_BAD_REQUEST, "result set is null");
+  }
+  return static_cast<int>(rs->parser.ColumnsCount());
 }
-int ydb_resultset_column_count(const YdbResultSet *, YdbResultDetails *rd) {
-  return 0;
-}
-const char *ydb_resultset_column_name(const YdbResultSet *, int,
+const char *ydb_resultset_column_name(const YdbResultSet *rs, int col_index,
                                       YdbResultDetails *rd) {
-  return nullptr;
+  CHECK_RD_PTR(rd);
+  if (!rs || col_index < 0 ||
+      col_index >= static_cast<int>(rs->resultSet.GetColumnsMeta().size())) {
+    RD(YDB_ERR_BAD_REQUEST, "invalid column index");
+    return nullptr;
+  }
+  return rs->resultSet.GetColumnsMeta()[static_cast<size_t>(col_index)]
+      .Name.c_str();
 }
 ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index,
                                      YdbResultDetails *rd) {
@@ -445,42 +443,143 @@ ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index,
 
   return YDB_TYPE_UNKNOWN;
 }
-int ydb_resultset_next_row(YdbResultSet *, YdbResultDetails *rd) {
-  return 0;
+int ydb_resultset_next_row(YdbResultSet *rs, YdbResultDetails *rd) {
+  CHECK_RD_INT(rd, -1);
+  if (!rs) {
+    return RD(YDB_ERR_BAD_REQUEST, "result set is null");
+  }
+  return rs->parser.TryNextRow() ? 1 : 0;
 }
-int ydb_resultset_is_null(YdbResultSet *, int, YdbResultDetails *rd) {
-  return 1;
+int ydb_resultset_is_null(YdbResultSet *rs, int col, YdbResultDetails *rd) {
+  CHECK_RD_INT(rd, -1);
+  if (!rs || col < 0 || col >= static_cast<int>(rs->parser.ColumnsCount())) {
+    return RD(YDB_ERR_BAD_REQUEST, "invalid column index");
+  }
+  try {
+    return rs->parser.ColumnParser(static_cast<size_t>(col)).IsNull() ? 1 : 0;
+  } catch (const std::exception &e) {
+    return RD(YDB_ERR_INTERNAL, e.what());
+  }
 }
 
-ydb_status_t ydb_resultset_get_utf8(YdbResultSet *, int, const char **,
-                                    size_t *, YdbResultDetails *rd) {
+ydb_status_t ydb_resultset_get_utf8(YdbResultSet *rs, int col, const char **out,
+                                    size_t *out_len, YdbResultDetails *rd) {
   CHECK_RD(rd);
-  return YDB_ERR_GENERIC;
+  if (!rs || !out || !out_len || col < 0 ||
+      col >= static_cast<int>(rs->parser.ColumnsCount())) {
+    return RD(YDB_ERR_BAD_REQUEST, "invalid utf8 getter arguments");
+  }
+  try {
+    auto value =
+        rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalUtf8();
+    if (!value.has_value()) {
+      return RD(YDB_ERR_NOT_FOUND, "column value is null");
+    }
+    rs->scratch = *value;
+    *out = rs->scratch.c_str();
+    *out_len = rs->scratch.size();
+    return YDB_OK;
+  } catch (const std::exception &e) {
+    return RD(YDB_ERR_INTERNAL, e.what());
+  }
 }
-ydb_status_t ydb_resultset_get_int64(YdbResultSet *, int, int64_t *,
+ydb_status_t ydb_resultset_get_int64(YdbResultSet *rs, int col, int64_t *out,
                                      YdbResultDetails *rd) {
   CHECK_RD(rd);
-  return YDB_ERR_GENERIC;
+  if (!rs || !out || col < 0 ||
+      col >= static_cast<int>(rs->parser.ColumnsCount())) {
+    return RD(YDB_ERR_BAD_REQUEST, "invalid int64 getter arguments");
+  }
+  try {
+    auto value =
+        rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalInt64();
+    if (!value.has_value()) {
+      return RD(YDB_ERR_NOT_FOUND, "column value is null");
+    }
+    *out = *value;
+    return YDB_OK;
+  } catch (const std::exception &e) {
+    return RD(YDB_ERR_INTERNAL, e.what());
+  }
 }
-ydb_status_t ydb_resultset_get_uint64(YdbResultSet *, int, uint64_t *,
+ydb_status_t ydb_resultset_get_uint64(YdbResultSet *rs, int col, uint64_t *out,
                                       YdbResultDetails *rd) {
   CHECK_RD(rd);
-  return YDB_ERR_GENERIC;
+  if (!rs || !out || col < 0 ||
+      col >= static_cast<int>(rs->parser.ColumnsCount())) {
+    return RD(YDB_ERR_BAD_REQUEST, "invalid uint64 getter arguments");
+  }
+  try {
+    auto value =
+        rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalUint64();
+    if (!value.has_value()) {
+      return RD(YDB_ERR_NOT_FOUND, "column value is null");
+    }
+    *out = *value;
+    return YDB_OK;
+  } catch (const std::exception &e) {
+    return RD(YDB_ERR_INTERNAL, e.what());
+  }
 }
-ydb_status_t ydb_resultset_get_double(YdbResultSet *, int, double *,
+ydb_status_t ydb_resultset_get_double(YdbResultSet *rs, int col, double *out,
                                       YdbResultDetails *rd) {
   CHECK_RD(rd);
-  return YDB_ERR_GENERIC;
+  if (!rs || !out || col < 0 ||
+      col >= static_cast<int>(rs->parser.ColumnsCount())) {
+    return RD(YDB_ERR_BAD_REQUEST, "invalid double getter arguments");
+  }
+  try {
+    auto value =
+        rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalDouble();
+    if (!value.has_value()) {
+      return RD(YDB_ERR_NOT_FOUND, "column value is null");
+    }
+    *out = *value;
+    return YDB_OK;
+  } catch (const std::exception &e) {
+    return RD(YDB_ERR_INTERNAL, e.what());
+  }
 }
-ydb_status_t ydb_resultset_get_bool(YdbResultSet *, int, int *,
+ydb_status_t ydb_resultset_get_bool(YdbResultSet *rs, int col, int *out,
                                     YdbResultDetails *rd) {
   CHECK_RD(rd);
-  return YDB_ERR_GENERIC;
+  if (!rs || !out || col < 0 ||
+      col >= static_cast<int>(rs->parser.ColumnsCount())) {
+    return RD(YDB_ERR_BAD_REQUEST, "invalid bool getter arguments");
+  }
+  try {
+    auto value =
+        rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalBool();
+    if (!value.has_value()) {
+      return RD(YDB_ERR_NOT_FOUND, "column value is null");
+    }
+    *out = *value ? 1 : 0;
+    return YDB_OK;
+  } catch (const std::exception &e) {
+    return RD(YDB_ERR_INTERNAL, e.what());
+  }
 }
-ydb_status_t ydb_resultset_get_bytes(YdbResultSet *, int, const void **,
-                                     size_t *, YdbResultDetails *rd) {
+ydb_status_t ydb_resultset_get_bytes(YdbResultSet *rs, int col,
+                                     const void **out, size_t *out_len,
+                                     YdbResultDetails *rd) {
   CHECK_RD(rd);
-  return YDB_ERR_GENERIC;
+  if (!rs || !out || !out_len || col < 0 ||
+      col >= static_cast<int>(rs->parser.ColumnsCount())) {
+    return RD(YDB_ERR_BAD_REQUEST, "invalid bytes getter arguments");
+  }
+  try {
+    auto value =
+        rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalBytes();
+    if (!value.has_value()) {
+      return RD(YDB_ERR_NOT_FOUND, "column value is null");
+    }
+    rs->scratch = *value;
+    *out = rs->scratch.data();
+    *out_len = rs->scratch.size();
+    return YDB_OK;
+  } catch (const std::exception &e) {
+    return RD(YDB_ERR_INTERNAL, e.what());
+  }
 }
 
 } // extern "C"

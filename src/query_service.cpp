@@ -1,4 +1,4 @@
-#include "include/internal.hpp"
+#include "internal.hpp"
 #include "ydb.h"
 #include "ydb_error.h"
 
@@ -116,6 +116,11 @@ ydb_status_t ydb_query_begin_tx(YdbQueryClient *qc, ydb_tx_mode_t tx_mode,
   *out_tx = wrapped;
   return YDB_OK;
 }
+
+struct ydb_retry_context{
+  YdbQueryClient* qc;
+  
+};
 
 ydb_status_t
 ydb_query_execute(YdbQueryClient *qc, const char *yql, ydb_tx_mode_t tx_mode,
