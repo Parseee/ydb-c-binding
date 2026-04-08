@@ -12,9 +12,7 @@ namespace {} // namespace
 extern "C" {
 
 void ydb_result_details_init(YdbResultDetails *d) {
-  if (!d) {
-    return;
-  }
+  d = new YdbResultDetails;
   d->code = 0;
   d->message = std::string();
   d->context = std::string();
@@ -32,6 +30,14 @@ void ydb_result_details_free(YdbResultDetails *d) {
   if (!d) {
     return;
   }
+  delete d;
+}
+
+const char *get_message(const YdbResultDetails *d) {
+  if (!d) {
+    return nullptr;
+  }
+  return d->message.c_str();
 }
 
 int ydb_is_status_retriable(ydb_status_t sdk_status_code) {

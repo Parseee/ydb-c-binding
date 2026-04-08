@@ -25,6 +25,8 @@ void ydb_result_details_init(YdbResultDetails *rd);
 void ydb_result_details_reset(YdbResultDetails *rd);
 void ydb_result_details_free(YdbResultDetails *rd);
 
+const char *get_message(const YdbResultDetails *d);
+
 ydb_status_t ydb_result_details_fail(YdbResultDetails *rd, ydb_status_t code,
                                      const char *msg);
 
