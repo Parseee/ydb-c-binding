@@ -31,7 +31,8 @@ typedef enum ydb_error_t {
   YDB_ERR_INTERNAL = -6,
   YDB_ERR_BUFFER_TOO_SMALL = -7,
   YDB_ERR_NO_MORE_RESULTS = -8,
-  YDB_ERR_ALREADY_DONE = -9
+  YDB_ERR_ALREADY_DONE = -9,
+  YDB_ERR_RETRY_FAILED = -10
 } ydb_error_t;
 
 typedef enum ydb_type_t {
@@ -174,11 +175,19 @@ typedef enum {
 YdbQueryClient *ydb_query_client_create(YdbDriver *drv, YdbResultDetails *rd);
 void ydb_query_client_free(YdbQueryClient *qc);
 
+YdbQueryRetrySettings *ydb_query_retry_settings_create(uint32_t max_retries,
+                                                       uint32_t timeout_ms,
+                                                       YdbResultDetails *rd);
+void ydb_query_retry_settings_free(YdbQueryRetrySettings *rs,
+                                   YdbResultDetails *rd);
+ydb_status_t ydb_query_perform_retry(YdbQueryRetrySettings *rs,
+                                     YdbResultDetails *rd);
+
 // for DDL commands
-ydb_status_t
-ydb_query_execute(YdbQueryClient *qc, const char *yql, ydb_tx_mode_t tx_mode,
-                  const YdbQueryParams *params, YdbResultSets **out_results,
-                  YdbQueryRetrySettings *rs, YdbResultDetails *result_details);
+ydb_status_t ydb_query_NOtx_execute(YdbQueryClient *qc, const char *yql,
+                                    const YdbQueryParams *params,
+                                    YdbResultSets **out_results,
+                                    YdbResultDetails *result_details);
 
 ydb_status_t ydb_query_begin_tx(YdbQueryClient *, ydb_tx_mode_t,
                                 YdbQueryTransaction **, YdbResultDetails *rd);
@@ -193,7 +202,7 @@ void ydb_query_tx_free(YdbQueryTransaction *, YdbResultDetails *rd);
  * Result Iteration
  * ============================================================ */
 int ydb_resultsets_count(const YdbResultSets *rs, YdbResultDetails *rd);
-YdbResultSet *ydb_resultsets_get(YdbResultSets *rs, int index,
+YdbResultSet *ydb_resultsets_release(YdbResultSets *rs, int index,
                                  YdbResultDetails *rd);
 void ydb_resultsets_free(YdbResultSets *rs, YdbResultDetails *rd);
 

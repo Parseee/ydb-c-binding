@@ -85,11 +85,7 @@ struct YdbResultSet {
 };
 
 struct YdbResultSets {
-  std::vector<YdbResultSet *> sets;
-  ~YdbResultSets() {
-    for (auto *s : sets)
-      delete s;
-  }
+  std::vector<std::unique_ptr<YdbResultSet>> sets;
 };
 
 /* ── Query Service ───────────────────────────────────────────────── */
@@ -111,6 +107,8 @@ struct YdbQueryRetrySettings {
   uint32_t current_retries;
   uint32_t timeout_ms;
 };
+
+/* ── Error Handling ──────────────────────────────────────────────── */
 
 struct YdbResultDetails {
   ydb_status_t code;

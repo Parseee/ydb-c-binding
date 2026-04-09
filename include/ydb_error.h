@@ -29,6 +29,7 @@ const char *get_message(const YdbResultDetails *d);
 
 ydb_status_t ydb_result_details_fail(YdbResultDetails *rd, ydb_status_t code,
                                      const char *msg);
+int ydb_is_status_retriable(ydb_status_t sdk_status_code);
 
 #ifdef __cplusplus
 }

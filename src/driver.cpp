@@ -24,6 +24,15 @@ ydb_status_t status_to_ydb_code(NYdb::EStatus s) {
     return YDB_ERR_NOT_FOUND;
   case NYdb::EStatus::INTERNAL_ERROR:
     return YDB_ERR_INTERNAL;
+  case NYdb::EStatus::TIMEOUT:
+    return YDB_ERR_TIMEOUT;
+  case NYdb::EStatus::ABORTED:
+  case NYdb::EStatus::UNAVAILABLE:
+  case NYdb::EStatus::OVERLOADED:
+  case NYdb::EStatus::CLIENT_RESOURCE_EXHAUSTED:
+  case NYdb::EStatus::CLIENT_DISCOVERY_FAILED:
+  case NYdb::EStatus::SESSION_BUSY:
+  case NYdb::EStatus::SESSION_EXPIRED:
   case NYdb::EStatus::TRANSPORT_UNAVAILABLE:
   case NYdb::EStatus::CLIENT_UNAUTHENTICATED:
     return YDB_ERR_CONNECTION;
@@ -117,7 +126,6 @@ YdbDriver *ydb_driver_create(const YdbDriverConfig *cfg, YdbResultDetails *rd) {
     drv->config = std::make_unique<NYdb::TDriverConfig>(std::move(c));
     drv->driver = std::make_unique<NYdb::TDriver>(*drv->config);
   } catch (const std::exception &e) {
-    // ydb_result_details_print(e.what());
     ydb_result_details_fail(rd, YDB_ERR_INTERNAL, e.what());
     delete drv;
     return nullptr;
@@ -161,7 +169,7 @@ ydb_status_t ydb_driver_wait_ready(YdbDriver *drv, uint32_t timeout_ms,
                                       std::to_string(timeout_ms) + " ms)";
       return ydb_result_details_fail(rd, YDB_ERR_TIMEOUT, timeout_msg.c_str());
     }
-    // this thread? or busy loop?
+    // TODO: this thread? or busy loop?
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 }
@@ -425,14 +433,14 @@ int ydb_resultsets_count(const YdbResultSets *rs, YdbResultDetails *rd) {
   }
   return static_cast<int>(rs->sets.size());
 }
-YdbResultSet *ydb_resultsets_get(YdbResultSets *rs, int index,
-                                 YdbResultDetails *rd) {
+YdbResultSet *ydb_resultsets_release(YdbResultSets *rs, int index,
+                                     YdbResultDetails *rd) {
   CHECK_RD_PTR(rd);
   if (!rs || index < 0 || static_cast<size_t>(index) >= rs->sets.size()) {
     RD(YDB_ERR_BAD_REQUEST, "result set index is out of range");
     return nullptr;
   }
-  return rs->sets[static_cast<size_t>(index)];
+  return rs->sets[static_cast<size_t>(index)].release();
 }
 void ydb_resultsets_free(YdbResultSets *rs, YdbResultDetails *rd) { delete rs; }
 int ydb_resultset_column_count(const YdbResultSet *rs, YdbResultDetails *rd) {

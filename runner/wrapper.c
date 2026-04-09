@@ -10,12 +10,6 @@ static const char *details_message(const YdbResultDetails *rd) {
   return get_message(rd);
 }
 
-static void reset_details(YdbResultDetails *rd) {
-  if (rd) {
-    ydb_result_details_reset(rd);
-  }
-}
-
 static void check_status(ydb_status_t st, const char *op,
                          const YdbResultDetails *rd) {
   if (st != YDB_OK) {
@@ -26,19 +20,17 @@ static void check_status(ydb_status_t st, const char *op,
 
 int main(void) {
   ydb_status_t st;
-  YdbResultDetails *rd;
+  YdbResultDetails *rd = NULL;
   YdbDriverConfig *cfg = NULL;
   YdbDriver *drv = NULL;
   YdbQueryClient *qc = NULL;
   YdbQueryTransaction *tx = NULL;
   YdbQueryParams *params = NULL;
-
-  ydb_result_details_init(rd);
+  YdbQueryRetrySettings *rs = NULL;
 
   cfg = ydb_driver_config_create(rd);
   if (!cfg) {
     fprintf(stderr, "ydb_driver_config_create failure\n");
-    ydb_result_details_free(rd);
     return 1;
   }
 
@@ -53,7 +45,6 @@ int main(void) {
   cfg = NULL;
   if (!drv) {
     fprintf(stderr, "ydb_driver_create failed\n");
-    ydb_result_details_free(rd);
     return 1;
   }
 
@@ -62,7 +53,6 @@ int main(void) {
     fprintf(stderr, "ydb_query_client_create failed: %s\n",
             details_message(rd));
     ydb_driver_free(drv);
-    ydb_result_details_free(rd);
     return 1;
   }
 
@@ -85,14 +75,23 @@ int main(void) {
   // tx = NULL;
   // printf("Table 'users' created (or already exists).\n");
 
-  YdbQueryRetrySettings *rs = {};
-  ydb_query_execute(qc,
-                    "CREATE TABLE users ("
-                    "  id   Uint64,"
-                    "  name Utf8,"
-                    "  PRIMARY KEY (id)"
-                    ");",
-                    YDB_TX_NONE, NULL, NULL, rs, rd);
+  rs = ydb_query_retry_settings_create(5, 100, rd);
+  if (!rs) {
+    fprintf(stderr, "ydb_query_retry_settings_create failed: %s\n",
+            details_message(rd));
+    ydb_query_client_free(qc);
+    ydb_driver_free(drv);
+    return 1;
+  }
+
+  st = ydb_query_NOtx_execute(qc,
+                              "CREATE TABLE users ("
+                              "  id   Uint64,"
+                              "  name Utf8,"
+                              "  PRIMARY KEY (id)"
+                              ");",
+                              NULL, NULL, rd);
+  check_status(st, "execute DDL", rd);
 
   params = ydb_query_params_create(rd);
   if (!params) {
@@ -100,7 +99,7 @@ int main(void) {
             details_message(rd));
     ydb_query_client_free(qc);
     ydb_driver_free(drv);
-    ydb_result_details_free(rd);
+    ydb_query_retry_settings_free(rs, rd);
     return 2;
   }
 
@@ -132,7 +131,7 @@ int main(void) {
 
   ydb_query_client_free(qc);
   ydb_driver_free(drv);
-  ydb_result_details_free(rd);
+  ydb_query_retry_settings_free(rs, rd);
 
   return 0;
 }

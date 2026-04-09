@@ -78,7 +78,16 @@ void ydb_result_details_print(const char *err_msg) {
 
 } // extern "C"
 
-bool isFatal(YdbResultDetails *rd) { return rd->code != YDB_OK; }
+bool isFatal(YdbResultDetails *rd) {
+  return rd->code != YDB_OK;
+  switch (rd->code) {
+  case (YDB_OK):
+  case (YDB_ERR_NO_MORE_RESULTS):
+    return false;
+  default:
+    return true;
+  }
+}
 
 ydb_status_t ydb_fill_from_status(YdbResultDetails *details,
                                   const NYdb::TStatus &st) {
