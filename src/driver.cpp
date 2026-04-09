@@ -450,6 +450,8 @@ int ydb_resultset_column_count(const YdbResultSet *rs, YdbResultDetails *rd) {
   }
   return static_cast<int>(rs->parser.ColumnsCount());
 }
+
+[[deprecated("will be added later")]]
 const char *ydb_resultset_column_name(const YdbResultSet *rs, int col_index,
                                       YdbResultDetails *rd) {
   CHECK_RD_PTR(rd);
@@ -461,6 +463,8 @@ const char *ydb_resultset_column_name(const YdbResultSet *rs, int col_index,
   return rs->resultSet.GetColumnsMeta()[static_cast<size_t>(col_index)]
       .Name.c_str();
 }
+
+[[deprecated("will be added later")]]
 ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index,
                                      YdbResultDetails *rd) {
   if (!rs || col_index < 0 || col_index >= rs->parser.ColumnsCount())
