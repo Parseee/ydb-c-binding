@@ -236,6 +236,14 @@ void ydb_query_tx_free(YdbQueryTransaction *tx,
   delete tx;
 }
 
+/*
+> settings сейчас это пользовательский интерфейс, который обрабатывается в
+отрыве от функций выполнения действий с таблицами. Для того, что бы понять,
+можно делать ретрай или нет, существует функция `ydb_is_status_retriable`,
+которая определяет саму возможность ретрая, а так же итеративно вызываемая
+`ydb_query_perform_retry`, которая оперирует структурой для ретраев
+*/
+
 YdbQueryRetrySettings *ydb_query_retry_settings_create(uint32_t max_retries,
                                                        uint32_t timeout_ms,
                                                        YdbResultDetails *rd) {
