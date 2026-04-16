@@ -1,0 +1,37 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/debian
+{
+	"name": "ydb-c-x86",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	// "image": "mcr.microsoft.com/devcontainers/base:bullseye",
+	"build": {
+		// Path is relative to the devcontainer.json file.
+		"context": "..",
+		"dockerfile": "Dockerfile"
+	},
+	"mounts": [
+		"source=ccache-ydbc,target=/ccache,type=volume"
+	],
+	"features": {
+		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {},
+		"ghcr.io/devcontainers-extra/features/zsh-plugins:0": {
+			"plugins": "ssh-agent zsh-autosuggestions"
+		}
+	},
+	"runArgs": [
+		"--network=ydb-net"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools-extension-pack",
+				"ms-vscode.makefile-tools"
+			],
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "zsh"
+			}
+		}
+	},
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	"remoteUser": "root"
+}
