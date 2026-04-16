@@ -8,7 +8,6 @@ find_package(ydb-cpp-sdk REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
     "src/driver.cpp"
-    # "src/table_service.cpp" # deprecated
     "src/query_service.cpp"
     "src/error.cpp"
 )
@@ -33,11 +32,13 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
     PUBLIC  ${PROJECT_SOURCE_DIR}/include
     PRIVATE ${PROJECT_SOURCE_DIR}
-    PRIVATE "/root/ydb_deps/include"
     PRIVATE "/workspaces/ydb-c/ydb-cpp-sdk/"
 )
 
 add_subdirectory(runner)
 
+include(CTest)
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
 
-# rebuild the project with -fPIC. probably not only ydb-sdk but every dependency

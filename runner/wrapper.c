@@ -18,6 +18,9 @@ static void check_status(ydb_status_t st, const char *op,
   }
 }
 
+// TODO: add readme with devcontainer build
+// TODO: push the devcontainer config here
+
 int main(void) {
   ydb_status_t st;
   YdbResultDetails *rd = NULL;
@@ -75,6 +78,7 @@ int main(void) {
   // tx = NULL;
   // printf("Table 'users' created (or already exists).\n");
 
+  // TODO: implement retries here
   rs = ydb_query_retry_settings_create(5, 100, rd);
   if (!rs) {
     fprintf(stderr, "ydb_query_retry_settings_create failed: %s\n",

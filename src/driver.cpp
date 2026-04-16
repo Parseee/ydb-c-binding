@@ -296,6 +296,7 @@ ydb_status_t ydb_params_begin_list(YdbParamBuilder *b, YdbResultDetails *rd) {
   return YDB_OK;
 }
 
+// TODO: add added element
 ydb_status_t ydb_params_add_list_item(YdbParamBuilder *b,
                                       YdbResultDetails *rd) {
   CHECK_RD(rd);
@@ -396,6 +397,7 @@ ydb_status_t ydb_params_add_member_double(YdbParamBuilder *b, const char *field,
   b->slot->AddMember(field).Double(v);
   return YDB_OK;
 }
+// TODO: check for len and NULL-terminator
 ydb_status_t ydb_params_add_member_utf8(YdbParamBuilder *b, const char *field,
                                         const char *v, YdbResultDetails *rd) {
   CHECK_RD(rd);
@@ -426,6 +428,9 @@ ydb_status_t ydb_params_add_member_null(YdbParamBuilder *b, const char *field,
   return YDB_OK;
 }
 
+// TODO: YDB can get results as stream without bufferization
+// ws can get results line-by-line
+// though we should not expose the method to the user
 int ydb_resultsets_count(const YdbResultSets *rs, YdbResultDetails *rd) {
   CHECK_RD_INT(rd, -1);
   if (!rs) {

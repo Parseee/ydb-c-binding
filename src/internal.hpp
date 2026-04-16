@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+// TODO: make these macros as functions!!
+
 #define RD(code, details) ydb_result_details_fail(rd, code, details)
 #define CHECK_RD(rd)                                                           \
   do {                                                                         \
