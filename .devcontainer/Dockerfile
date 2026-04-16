@@ -27,6 +27,9 @@ RUN apt update && apt install -y --no-install-recommends \
     libdouble-conversion-dev \
     libssl-dev \
     libstdc++-13-dev \
+    lsb-release \
+    software-properties-common \
+    libidn2-0-dev \
     gcc-13 \
     g++-13 \
     ccache \
