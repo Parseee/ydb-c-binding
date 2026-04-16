@@ -1,0 +1,20 @@
+services:
+  ydb-core:
+    image: ydbplatform/local-ydb:latest
+    container_name: ydb-local
+    hostname: ydb-local
+    restart: unless-stopped
+    ports:
+      - "2136:2136" # gRPC endpoint
+      - "8765:8765" # web UI / monitoring
+    networks:
+      - ydb-net
+    volumes:
+      - ydb-data:/ydb_data
+
+networks:
+  ydb-net:
+    name: ydb-net
+
+volumes:
+  ydb-data:
