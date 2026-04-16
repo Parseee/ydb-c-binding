@@ -32,6 +32,12 @@
 			}
 		}
 	},
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	"remoteEnv": {
+		"CCACHE_DIR": "/ccache",
+		"CCACHE_MAXSIZE": "10G",
+		"YDB_ENDPOINT": "grpc://localhost:2136",
+		"YDB_DATABASE": "/local",
+		"YDB_CPP_SDK_INSTALL_PREFIX": "/ydb-cpp-sdk/"
+	},
 	"remoteUser": "root"
 }

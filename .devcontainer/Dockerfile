@@ -1,6 +1,8 @@
 FROM --platform=linux/amd64 ubuntu:24.04
 
-RUN apt update && apt install -y --no-install-recommends \
+# WORKDIR /workspaces/ydb-c-bindin # TODO: uncomment and fix paths
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ca-certificates \
     git \
@@ -13,6 +15,8 @@ RUN apt update && apt install -y --no-install-recommends \
     libidn11-dev \
     ragel \
     yasm \
+    gpg \
+    gnupg \
     libc-ares-dev \
     libre2-dev \
     rapidjson-dev \
@@ -40,13 +44,13 @@ RUN apt update && apt install -y --no-install-recommends \
 ENV CCACHE_DIR=/ccache
 ENV CCACHE_MAXSIZE=10G
 
-# Install clang-16 and set as default
+# Install clang-18 and set as default
 RUN wget https://apt.llvm.org/llvm.sh && \
     chmod u+x llvm.sh && \
-    ./llvm.sh 16 && \
-    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-16 160 && \
-    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-16 160 && \
-    update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-16 160
+    ./llvm.sh 18 && \
+    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 160 && \
+    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 160 && \
+    update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-18 160
 
 # Install abseil-cpp
 RUN wget -O abseil-cpp-20230802.0.tar.gz https://github.com/abseil/abseil-cpp/archive/refs/tags/20230802.0.tar.gz && \
@@ -136,8 +140,9 @@ RUN wget -O jwt-cpp-0.7.0.tar.gz https://github.com/Thalhammer/jwt-cpp/archive/r
     cd ../../
 
 # build the project
-RUN wget -O ydb-cpp-sdk.tar.gz https://github.com/ydb-platform/ydb-cpp-sdk/archive/refs/tags/v3.17.0.tar.gz && \
-    tar -xvzf ydb-cpp-sdk.tar.gz && cd ydb-cpp-sdk && \
+RUN git clone https://github.com/ydb-platform/ydb-cpp-sdk.git && cd ydb-cpp-sdk && \
+    git submodule update --init --recursive && \
+    git submodule update --remote --recursive && \
     rm -rf build && cmake --preset release-clang \
     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
