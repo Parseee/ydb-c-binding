@@ -1,0 +1,47 @@
+services:
+  ydb:
+    image: ghcr.io/ydb-platform/local-ydb:24.3
+    container_name: ydb-local
+    hostname: ydb-local
+    restart: unless-stopped
+    platform: linux/amd64
+    ports:
+      - "2136:2136" # grpc
+      - "8765:8765" # ui/monitoring
+      # - "2135:2135" # grpc TLS (optional)
+    environment:
+      - YDB_USE_IN_MEMORY_PDISKS=true
+      - GRPC_PORT=2136
+      - MON_PORT=8765
+      # - GRPC_TLS_PORT=2135 # enable only if needed
+    volumes:
+      - ydb-data:/ydb_data
+      # - ydb-certs:/ydb_certs # only for TLS/certs use-case
+    networks:
+      - ydb-net
+
+  driver:
+    build:
+    context: ..
+    dockerfile: .devcontainer/Dockerfile
+    container_name: ydb-c-binding-dev
+    volumes:
+      - ..:/workspaces/ydb-c-binding:cached
+      - ccache-ydbc:/ccache
+    working_dir: /workspaces/ydb-c-binding
+    command: sleep infinity
+    networks:
+      - ydb-net
+    environment:
+      - CCACHE_DIR=/ccache
+      - CCACHE_MAXSIZE=10G
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_DATABASE=/local
+
+networks:
+  ydb-net:
+    name: ydb-net
+
+volumes:
+  ydb-data:
+  # ydb-certs:

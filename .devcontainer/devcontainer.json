@@ -3,14 +3,14 @@
 {
 	"name": "ydb-c-x86",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	// "image": "mcr.microsoft.com/devcontainers/base:bullseye",
-	"build": {
-		// Path is relative to the devcontainer.json file.
-		"context": "..",
-		"dockerfile": "Dockerfile"
-	},
-	"mounts": [
-		"source=ccache-ydbc,target=/ccache,type=volume"
+	"service": "driver",
+	"dockerComposeFile": "compose.yml",
+	"workspaceFolder": "/workspaces/ydb-c-binding",
+	"capAdd": [
+		"SYS_PTRACE"
+	],
+	"securityOpt": [
+		"seccomp=unconfined"
 	],
 	"features": {
 		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {},
@@ -18,14 +18,15 @@
 			"plugins": "ssh-agent zsh-autosuggestions"
 		}
 	},
-	"runArgs": [
-		"--network=ydb-net"
-	],
+	// "initializeCommand": "mkdir -p ${localEnv:HOME}/.ccache && cd \"${localWorkspaceFolder}\" && git config --local user.email \"$(git config user.email)\" && git config --local user.name \"$(git config user.name)\"",
+	// "postStartCommand": ".devcontainer/configure.sh",
 	"customizations": {
 		"vscode": {
 			"extensions": [
 				"ms-vscode.cpptools-extension-pack",
-				"ms-vscode.makefile-tools"
+				"ms-vscode.makefile-tools",
+				"llvm-vs-code-extensions.vscode-clangd",
+				"Gruntfuggly.todo-tree"
 			],
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "zsh"
@@ -39,5 +40,9 @@
 		"YDB_DATABASE": "/local",
 		"YDB_CPP_SDK_INSTALL_PREFIX": "/ydb-cpp-sdk/"
 	},
+	// FIXME: llm said that i don't need it since these are tracked by the compose
+	// "mounts": [
+	// 	"source=${localEnv:HOME}/.ccache,target=/root/.ccache,type=bind,consistency=cached"
+	// ],
 	"remoteUser": "root"
 }

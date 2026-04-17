@@ -9,6 +9,7 @@
 #include <ydb-cpp-sdk/client/table/table.h>
 
 #include <chrono>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <thread>
@@ -397,14 +398,22 @@ ydb_status_t ydb_params_add_member_double(YdbParamBuilder *b, const char *field,
   b->slot->AddMember(field).Double(v);
   return YDB_OK;
 }
-// TODO: check for len and NULL-terminator
 ydb_status_t ydb_params_add_member_utf8(YdbParamBuilder *b, const char *field,
                                         const char *v, YdbResultDetails *rd) {
   CHECK_RD(rd);
   if (!b || !field || !v) {
     return RD(YDB_ERR_BAD_REQUEST, "invalid utf8 member");
   }
-  b->slot->AddMember(field).Utf8(v);
+  constexpr size_t kMaxUtf8Len = 1U << 20; // 1 MiB safety bound
+  const void *terminator = std::memchr(v, '\0', kMaxUtf8Len + 1);
+  if (!terminator) {
+    return RD(YDB_ERR_BAD_REQUEST,
+              "invalid utf8 member: missing null terminator or too long");
+  }
+
+  const size_t len =
+      static_cast<size_t>(static_cast<const char *>(terminator) - v);
+  b->slot->AddMember(field).Utf8(std::string(v, len));
   return YDB_OK;
 }
 ydb_status_t ydb_params_add_member_bytes(YdbParamBuilder *b, const char *field,

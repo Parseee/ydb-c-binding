@@ -18,9 +18,6 @@ static void check_status(ydb_status_t st, const char *op,
   }
 }
 
-// TODO: add readme with devcontainer build
-// TODO: push the devcontainer config here
-
 int main(void) {
   ydb_status_t st;
   YdbResultDetails *rd = NULL;
