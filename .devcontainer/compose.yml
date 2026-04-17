@@ -22,8 +22,8 @@ services:
 
   driver:
     build:
-    context: ..
-    dockerfile: .devcontainer/Dockerfile
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
     container_name: ydb-c-binding-dev
     volumes:
       - ..:/workspaces/ydb-c-binding:cached
@@ -44,4 +44,5 @@ networks:
 
 volumes:
   ydb-data:
+  ccache-ydbc:
   # ydb-certs:
