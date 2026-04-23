@@ -28,6 +28,11 @@ int main(void) {
   YdbQueryRetrySettings *rs = NULL;
   YdbQueryTransaction *tx = NULL;
 
+  if (ydb_result_details_init(rd) != 0) {
+    fprintf(stderr, "result details creation failed\n");
+    return -1;
+  }
+
   cfg = ydb_driver_config_create(rd);
   if (!cfg) {
     fprintf(stderr, "ydb_driver_config_create failed\n");
@@ -50,7 +55,8 @@ int main(void) {
 
   qc = ydb_query_client_create(drv, rd);
   if (!qc) {
-    fprintf(stderr, "ydb_query_client_create failed: %s\n", details_message(rd));
+    fprintf(stderr, "ydb_query_client_create failed: %s\n",
+            details_message(rd));
     ydb_driver_free(drv);
     return 1;
   }
@@ -66,7 +72,8 @@ int main(void) {
 
   params = ydb_query_params_create(rd);
   if (!params) {
-    fprintf(stderr, "ydb_query_params_create failed: %s\n", details_message(rd));
+    fprintf(stderr, "ydb_query_params_create failed: %s\n",
+            details_message(rd));
     ydb_query_client_free(qc);
     ydb_driver_free(drv);
     return 1;
@@ -99,7 +106,8 @@ int main(void) {
     }
 
     st = ydb_query_tx_execute(
-        tx, "UPSERT INTO users (id, name) VALUES ($id, $name)", params, NULL, rd);
+        tx, "UPSERT INTO users (id, name) VALUES ($id, $name)", params, NULL,
+        rd);
     if (st == YDB_OK) {
       st = ydb_query_tx_commit(tx, rd);
     } else {
@@ -111,7 +119,8 @@ int main(void) {
     if (st == YDB_OK) {
       break;
     }
-    if (!ydb_is_status_retriable(st) || ydb_query_perform_retry(rs, rd) != YDB_OK) {
+    if (!ydb_is_status_retriable(st) ||
+        ydb_query_perform_retry(rs, rd) != YDB_OK) {
       check_status(st, "upsert with retries", rd);
     }
   }
@@ -122,5 +131,6 @@ int main(void) {
   ydb_query_params_free(params, rd);
   ydb_query_client_free(qc);
   ydb_driver_free(drv);
+  ydb_result_details_free(rd);
   return 0;
 }

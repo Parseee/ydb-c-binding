@@ -14,7 +14,7 @@ typedef struct YdbResultDetails YdbResultDetails;
 
 void ydb_result_details_print(const char *message);
 
-void ydb_result_details_init(YdbResultDetails *rd);
+int ydb_result_details_init(YdbResultDetails *rd);
 void ydb_result_details_reset(YdbResultDetails *rd);
 void ydb_result_details_free(YdbResultDetails *rd);
 

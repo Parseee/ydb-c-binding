@@ -28,6 +28,11 @@ int main(void) {
   YdbQueryParams *params = NULL;
   YdbQueryRetrySettings *rs = NULL;
 
+  if (ydb_result_details_init(rd) != 0) {
+    fprintf(stderr, "result details creation failed\n");
+    return -1;
+  }
+
   cfg = ydb_driver_config_create(rd);
   if (!cfg) {
     fprintf(stderr, "ydb_driver_config_create failure\n");
@@ -56,26 +61,6 @@ int main(void) {
     return 1;
   }
 
-  // st = ydb_query_begin_tx(qc, YDB_TX_NONE, &tx, rd);
-  // check_status(st, "begin_tx (DDL)", rd);
-  // reset_details(rd);
-  // st = ydb_query_tx_execute(tx,
-  //                           "CREATE TABLE users ("
-  //                           "  id   Uint64,"
-  //                           "  name Utf8,"
-  //                           "  PRIMARY KEY (id)"
-  //                           ");",
-  //                           NULL, NULL, rd);
-  // check_status(st, "execute DDL", rd);
-
-  // reset_details(rd);
-  // st = ydb_query_tx_commit(tx, rd);
-  // check_status(st, "commit DDL", rd);
-  // ydb_query_tx_free(tx, rd);
-  // tx = NULL;
-  // printf("Table 'users' created (or already exists).\n");
-
-  // TODO: implement retries here
   rs = ydb_query_retry_settings_create(5, 100, rd);
   if (!rs) {
     fprintf(stderr, "ydb_query_retry_settings_create failed: %s\n",
@@ -86,10 +71,10 @@ int main(void) {
   }
 
   st = ydb_query_NOtx_execute(qc,
-                              "CREATE TABLE users ("
-                              "  id   Uint64,"
-                              "  name Utf8,"
-                              "  PRIMARY KEY (id)"
+                              "CREATE TABLE IF NOT EXISTS users ("
+                              "  key   Uint64,"
+                              "  value Utf8,"
+                              "  PRIMARY KEY (key)"
                               ");",
                               NULL, NULL, rd);
   check_status(st, "execute DDL", rd);
@@ -104,20 +89,22 @@ int main(void) {
     return 2;
   }
 
-  int32_t id = 52;
-  const char *name = "bebebe bububu";
+  int32_t key = 52;
+  const char *value = "bebebe bububu";
 
-  st = ydb_params_set_uint64(params, "$id", id, rd);
-  check_status(st, "params_set_uint64 $id", rd);
+  st = ydb_params_set_uint64(params, "$key", key, rd);
+  check_status(st, "params_set_uint64 $key", rd);
 
-  st = ydb_params_set_utf8(params, "$name", name, rd);
-  check_status(st, "params_set_utf8 $name", rd);
+  st = ydb_params_set_utf8(params, "$value", value, rd);
+  check_status(st, "params_set_utf8 $value", rd);
 
   st = ydb_query_begin_tx(qc, YDB_TX_SERIALIZABLE_RW, &tx, rd);
   check_status(st, "begin_tx (UPSERT)", rd);
 
   st = ydb_query_tx_execute(
-      tx, "UPSERT INTO users (id, name) VALUES ($id, $name)", params, NULL, rd);
+      tx, "DECLARE $key AS Uint64;\n"
+      "DECLARE $value as Utf8;\n"
+      "UPSERT INTO users (key, value) VALUES ($key, $value)", params, NULL, rd);
   check_status(st, "execute UPSERT", rd);
 
   st = ydb_query_tx_commit(tx, rd);
@@ -128,11 +115,12 @@ int main(void) {
   ydb_query_params_free(params, rd);
   params = NULL;
 
-  printf("UPSERT succeeded: id=%d, name=%s\n", id, name);
+  printf("UPSERT succeeded: key=%d, value=%s\n", key, value);
 
   ydb_query_client_free(qc);
   ydb_driver_free(drv);
   ydb_query_retry_settings_free(rs, rd);
+  ydb_result_details_free(rd);
 
   return 0;
 }

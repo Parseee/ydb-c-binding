@@ -11,11 +11,17 @@ namespace {} // namespace
 
 extern "C" {
 
-void ydb_result_details_init(YdbResultDetails *d) {
-  d = new YdbResultDetails;
-  d->code = 0;
-  d->message = std::string();
-  d->context = std::string();
+int ydb_result_details_init(YdbResultDetails *d) {
+
+  try {
+    d = new YdbResultDetails;
+    d->code = 0;
+    d->message = std::string();
+    d->context = std::string();
+    return 0;
+  } catch(...) {
+    return -1;
+  }
 }
 
 void ydb_result_details_reset(YdbResultDetails *d) {

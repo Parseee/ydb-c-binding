@@ -156,3 +156,4 @@ RUN sh -c "$(wget --no-check-certificate -O- https://raw.githubusercontent.com/o
     git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
 ENV SHELL=/bin/zsh
 
+# TODO: add clangd to installs and set the default path

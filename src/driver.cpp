@@ -21,7 +21,7 @@
 #define CHECK_RD(rd)                                                           \
   do {                                                                         \
     if (const auto early = ydb_check_rd_status((rd), __func__);                \
-        early.has_value()) {                                                   \
+        early.has_value() && early.value() != YDB_OK) {                        \
       return *early;                                                           \
     }                                                                          \
   } while (0)
