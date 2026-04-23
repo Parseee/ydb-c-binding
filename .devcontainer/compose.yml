@@ -1,22 +1,25 @@
 services:
   ydb:
-    image: ghcr.io/ydb-platform/local-ydb:24.3
+    image: ghcr.io/ydb-platform/local-ydb:latest
     container_name: ydb-local
     hostname: ydb-local
-    restart: unless-stopped
     platform: linux/amd64
+    restart: unless-stopped
     ports:
+      - "2135:2135" # grpc TLS
       - "2136:2136" # grpc
       - "8765:8765" # ui/monitoring
-      # - "2135:2135" # grpc TLS (optional)
+      - "9092:9092" # kafka proxy
     environment:
       - YDB_USE_IN_MEMORY_PDISKS=true
+      # - YDB_GRPC_ENABLE_TLS=true
+      - GRPC_TLS_PORT=2135
       - GRPC_PORT=2136
       - MON_PORT=8765
-      # - GRPC_TLS_PORT=2135 # enable only if needed
+      - YDB_KAFKA_PROXY_PORT=9092
     volumes:
-      - ydb-data:/ydb_data
-      # - ydb-certs:/ydb_certs # only for TLS/certs use-case
+      - ../ydb_data:/ydb_data
+      - ../ydb_certs:/ydb_certs
     networks:
       - ydb-net
 
@@ -25,6 +28,7 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
     container_name: ydb-c-binding-dev
+    platform: linux/amd64
     volumes:
       - ..:/workspaces/ydb-c-binding:cached
       - ccache-ydbc:/ccache
@@ -39,10 +43,9 @@ services:
       - YDB_DATABASE=/local
 
 networks:
-  ydb-net:
-    name: ydb-net
+   ydb-net:
+     external: true
+     name: ydb-net
 
 volumes:
-  ydb-data:
   ccache-ydbc:
-  # ydb-certs:

@@ -114,6 +114,36 @@ void ydb_result_details_set_status(YdbResultDetails *d, ydb_status_t code) {
   d->code = code;
 }
 
+ydb_status_t ydb_rd_fail(YdbResultDetails *rd, ydb_status_t code,
+                         const char *details) {
+  return ydb_result_details_fail(rd, code, details);
+}
+
+void ydb_append_fatal_context(YdbResultDetails *rd, const char *func) {
+  std::string error_msg = std::string("from ") + func;
+  ydb_result_details_append_message(rd, error_msg.c_str());
+}
+
+std::optional<ydb_status_t> ydb_check_rd_status(YdbResultDetails *rd,
+                                                const char *func) {
+  if (!rd) {
+    return YDB_OK;
+  }
+  if (isFatal(rd)) {
+    ydb_append_fatal_context(rd, func);
+    return rd->code;
+  }
+  return std::nullopt;
+}
+
+bool ydb_check_rd_fatal(YdbResultDetails *rd, const char *func) {
+  if (rd && isFatal(rd)) {
+    ydb_append_fatal_context(rd, func);
+    return true;
+  }
+  return false;
+}
+
 void ydb_result_details_set_message(YdbResultDetails *d,
                                     const std::string &msg) {
   if (!d) {

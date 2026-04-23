@@ -1,7 +1,5 @@
 FROM --platform=linux/amd64 ubuntu:24.04
 
-# WORKDIR /workspaces/ydb-c-bindin # TODO: uncomment and fix paths
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ca-certificates \
@@ -34,6 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     lsb-release \
     software-properties-common \
     libidn2-0-dev \
+    idn2 \
     gcc-13 \
     g++-13 \
     ccache \
@@ -146,8 +145,11 @@ RUN git clone https://github.com/ydb-platform/ydb-cpp-sdk.git && cd ydb-cpp-sdk 
     rm -rf build && cmake --preset release-clang \
     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-    -DYDB_SDK_INSTALL=On && \
-    cmake --build --preset default
+    -DYDB_SDK_INSTALL=On \
+    -DCMAKE_CXX_FLAGS="-fPIC" && \
+    cmake --build --preset default && \
+    cmake --install build --prefix=/usr/local/ && \
+    cd ../
 
 # Install Oh My Zsh
 RUN sh -c "$(wget --no-check-certificate -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \

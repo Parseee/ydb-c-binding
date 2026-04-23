@@ -10,50 +10,9 @@
 #include <ydb-cpp-sdk/client/table/table.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
-
-// TODO: make these macros as functions!!
-
-#define RD(code, details) ydb_result_details_fail(rd, code, details)
-#define CHECK_RD(rd)                                                           \
-  do {                                                                         \
-    if (rd == NULL) {                                                          \
-      return YDB_OK;                                                           \
-    }                                                                          \
-    if (isFatal(rd)) {                                                         \
-      std::string error_msg = std::string("from ") + __func__;                 \
-      ydb_result_details_append_message(rd, error_msg.c_str());                \
-      return rd->code;                                                         \
-    }                                                                          \
-  } while (0)
-
-#define CHECK_RD_PTR(rd)                                                       \
-  do {                                                                         \
-    if ((rd) && isFatal(rd)) {                                                 \
-      std::string error_msg = std::string("from ") + __func__;                 \
-      ydb_result_details_append_message(rd, error_msg.c_str());                \
-      return nullptr;                                                          \
-    }                                                                          \
-  } while (0)
-
-#define CHECK_RD_INT(rd, error_ret)                                            \
-  do {                                                                         \
-    if ((rd) && isFatal(rd)) {                                                 \
-      std::string error_msg = std::string("from ") + __func__;                 \
-      ydb_result_details_append_message(rd, error_msg.c_str());                \
-      return (error_ret);                                                      \
-    }                                                                          \
-  } while (0)
-
-#define CHECK_RD_VOID(rd)                                                      \
-  do {                                                                         \
-    if ((rd) && isFatal(rd)) {                                                 \
-      std::string error_msg = std::string("from ") + __func__;                 \
-      ydb_result_details_append_message(rd, error_msg.c_str());                \
-      return;                                                                  \
-    }                                                                          \
-  } while (0)
 
 struct YdbDriverConfig {
   std::string endpoint;
@@ -131,3 +90,13 @@ void ydb_result_details_append_message(YdbResultDetails *rd,
                                        const std::string &msg);
 void ydb_result_details_set_context(YdbResultDetails *rd,
                                     const std::string &ctx);
+
+ydb_status_t ydb_rd_fail(YdbResultDetails *rd, ydb_status_t code,
+                         const char *details);
+
+void ydb_append_fatal_context(YdbResultDetails *rd, const char *func);
+
+std::optional<ydb_status_t> ydb_check_rd_status(YdbResultDetails *rd,
+                                                const char *func);
+
+bool ydb_check_rd_fatal(YdbResultDetails *rd, const char *func);

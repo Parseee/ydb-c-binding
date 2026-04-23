@@ -113,6 +113,26 @@ ydb_status_t ydb_params_end_param(YdbParamBuilder *b, YdbResultDetails *rd);
 
 ydb_status_t ydb_params_begin_list(YdbParamBuilder *b, YdbResultDetails *rd);
 ydb_status_t ydb_params_add_list_item(YdbParamBuilder *b, YdbResultDetails *rd);
+ydb_status_t ydb_params_add_list_item_bool(YdbParamBuilder *b, int v,
+                                           YdbResultDetails *rd);
+ydb_status_t ydb_params_add_list_item_int32(YdbParamBuilder *b, int32_t v,
+                                            YdbResultDetails *rd);
+ydb_status_t ydb_params_add_list_item_uint32(YdbParamBuilder *b, uint32_t v,
+                                             YdbResultDetails *rd);
+ydb_status_t ydb_params_add_list_item_int64(YdbParamBuilder *b, int64_t v,
+                                            YdbResultDetails *rd);
+ydb_status_t ydb_params_add_list_item_uint64(YdbParamBuilder *b, uint64_t v,
+                                             YdbResultDetails *rd);
+ydb_status_t ydb_params_add_list_item_float(YdbParamBuilder *b, float v,
+                                            YdbResultDetails *rd);
+ydb_status_t ydb_params_add_list_item_double(YdbParamBuilder *b, double v,
+                                             YdbResultDetails *rd);
+ydb_status_t ydb_params_add_list_item_utf8(YdbParamBuilder *b, const char *v,
+                                           YdbResultDetails *rd);
+ydb_status_t ydb_params_add_list_item_bytes(YdbParamBuilder *b, const void *data,
+                                            size_t len, YdbResultDetails *rd);
+ydb_status_t ydb_params_add_list_item_null(YdbParamBuilder *b,
+                                           YdbResultDetails *rd);
 ydb_status_t ydb_params_end_list(YdbParamBuilder *b, YdbResultDetails *rd);
 
 ydb_status_t ydb_params_begin_struct(YdbParamBuilder *b, YdbResultDetails *rd);
@@ -201,7 +221,6 @@ void ydb_query_tx_free(YdbQueryTransaction *, YdbResultDetails *rd);
 /* ============================================================
  * Result Iteration
  * ============================================================ */
-int ydb_resultsets_count(const YdbResultSets *rs, YdbResultDetails *rd);
 YdbResultSet *ydb_resultsets_release(YdbResultSets *rs, int index,
                                  YdbResultDetails *rd);
 void ydb_resultsets_free(YdbResultSets *rs, YdbResultDetails *rd);

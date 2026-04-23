@@ -10,13 +10,6 @@ extern "C" {
 
 typedef int32_t ydb_status_t;
 
-// change to ydb context
-// store info about detqails and pointer to context
-// context must be constant and set here
-// context is not request context
-// - context of TX
-// - part of transaction (begin_tx(..., retry settings*, ...))
-
 typedef struct YdbResultDetails YdbResultDetails;
 
 void ydb_result_details_print(const char *message);

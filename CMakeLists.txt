@@ -4,8 +4,6 @@ project(YDB-C)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(ydb-cpp-sdk_DIR "/ydb-cpp-sdk/build")
-
 find_package(ydb-cpp-sdk REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
@@ -34,7 +32,7 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
     PUBLIC  ${PROJECT_SOURCE_DIR}/include
     PRIVATE ${PROJECT_SOURCE_DIR}
-    PRIVATE ${YDB_CPP_SDK_INSTALL_PREFIX}/ydb-cpp-sdk/
+    PUBLIC /usr/local/include/__ydb_sdk_special_headers/
 )
 
 add_subdirectory(runner)

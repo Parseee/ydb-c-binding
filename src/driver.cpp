@@ -15,6 +15,35 @@
 #include <thread>
 #include <ydb-cpp-sdk/client/value/value.h>
 
+// i think macros are viable here bc they are now being injected into code
+// and provide fast return without too much if()
+#define RD(code, details) ydb_rd_fail(rd, code, details)
+#define CHECK_RD(rd)                                                           \
+  do {                                                                         \
+    if (const auto early = ydb_check_rd_status((rd), __func__);                \
+        early.has_value()) {                                                   \
+      return *early;                                                           \
+    }                                                                          \
+  } while (0)
+#define CHECK_RD_PTR(rd)                                                       \
+  do {                                                                         \
+    if (ydb_check_rd_fatal((rd), __func__)) {                                  \
+      return nullptr;                                                          \
+    }                                                                          \
+  } while (0)
+#define CHECK_RD_INT(rd, error_ret)                                            \
+  do {                                                                         \
+    if (ydb_check_rd_fatal((rd), __func__)) {                                  \
+      return (error_ret);                                                      \
+    }                                                                          \
+  } while (0)
+#define CHECK_RD_VOID(rd)                                                      \
+  do {                                                                         \
+    if (ydb_check_rd_fatal((rd), __func__)) {                                  \
+      return;                                                                  \
+    }                                                                          \
+  } while (0)
+
 ydb_status_t status_to_ydb_code(NYdb::EStatus s) {
   switch (s) {
   case NYdb::EStatus::SUCCESS:
@@ -297,7 +326,6 @@ ydb_status_t ydb_params_begin_list(YdbParamBuilder *b, YdbResultDetails *rd) {
   return YDB_OK;
 }
 
-// TODO: add added element
 ydb_status_t ydb_params_add_list_item(YdbParamBuilder *b,
                                       YdbResultDetails *rd) {
   CHECK_RD(rd);
@@ -305,6 +333,116 @@ ydb_status_t ydb_params_add_list_item(YdbParamBuilder *b,
     return RD(YDB_ERR_BAD_REQUEST, "list builder is null");
   }
   b->slot->AddListItem();
+  return YDB_OK;
+}
+
+ydb_status_t ydb_params_add_list_item_bool(YdbParamBuilder *b, int v,
+                                           YdbResultDetails *rd) {
+  CHECK_RD(rd);
+  if (!b || !b->slot) {
+    return RD(YDB_ERR_BAD_REQUEST, "list builder is null");
+  }
+  b->slot->AddListItem().Bool(v != 0);
+  return YDB_OK;
+}
+
+ydb_status_t ydb_params_add_list_item_int32(YdbParamBuilder *b, int32_t v,
+                                            YdbResultDetails *rd) {
+  CHECK_RD(rd);
+  if (!b || !b->slot) {
+    return RD(YDB_ERR_BAD_REQUEST, "list builder is null");
+  }
+  b->slot->AddListItem().Int32(v);
+  return YDB_OK;
+}
+
+ydb_status_t ydb_params_add_list_item_uint32(YdbParamBuilder *b, uint32_t v,
+                                             YdbResultDetails *rd) {
+  CHECK_RD(rd);
+  if (!b || !b->slot) {
+    return RD(YDB_ERR_BAD_REQUEST, "list builder is null");
+  }
+  b->slot->AddListItem().Uint32(v);
+  return YDB_OK;
+}
+
+ydb_status_t ydb_params_add_list_item_int64(YdbParamBuilder *b, int64_t v,
+                                            YdbResultDetails *rd) {
+  CHECK_RD(rd);
+  if (!b || !b->slot) {
+    return RD(YDB_ERR_BAD_REQUEST, "list builder is null");
+  }
+  b->slot->AddListItem().Int64(v);
+  return YDB_OK;
+}
+
+ydb_status_t ydb_params_add_list_item_uint64(YdbParamBuilder *b, uint64_t v,
+                                             YdbResultDetails *rd) {
+  CHECK_RD(rd);
+  if (!b || !b->slot) {
+    return RD(YDB_ERR_BAD_REQUEST, "list builder is null");
+  }
+  b->slot->AddListItem().Uint64(v);
+  return YDB_OK;
+}
+
+ydb_status_t ydb_params_add_list_item_float(YdbParamBuilder *b, float v,
+                                            YdbResultDetails *rd) {
+  CHECK_RD(rd);
+  if (!b || !b->slot) {
+    return RD(YDB_ERR_BAD_REQUEST, "list builder is null");
+  }
+  b->slot->AddListItem().Float(v);
+  return YDB_OK;
+}
+
+ydb_status_t ydb_params_add_list_item_double(YdbParamBuilder *b, double v,
+                                             YdbResultDetails *rd) {
+  CHECK_RD(rd);
+  if (!b || !b->slot) {
+    return RD(YDB_ERR_BAD_REQUEST, "list builder is null");
+  }
+  b->slot->AddListItem().Double(v);
+  return YDB_OK;
+}
+
+ydb_status_t ydb_params_add_list_item_utf8(YdbParamBuilder *b, const char *v,
+                                           YdbResultDetails *rd) {
+  CHECK_RD(rd);
+  if (!b || !b->slot || !v) {
+    return RD(YDB_ERR_BAD_REQUEST, "invalid utf8 list item");
+  }
+  constexpr size_t kMaxUtf8Len = 1U << 20; // 1 MiB safety bound
+  const void *terminator = std::memchr(v, '\0', kMaxUtf8Len + 1);
+  if (!terminator) {
+    return RD(YDB_ERR_BAD_REQUEST,
+              "invalid utf8 list item: missing null terminator or too long");
+  }
+  const size_t len =
+      static_cast<size_t>(static_cast<const char *>(terminator) - v);
+  b->slot->AddListItem().Utf8(std::string(v, len));
+  return YDB_OK;
+}
+
+ydb_status_t ydb_params_add_list_item_bytes(YdbParamBuilder *b,
+                                            const void *data, size_t len,
+                                            YdbResultDetails *rd) {
+  CHECK_RD(rd);
+  if (!b || !b->slot || !data) {
+    return RD(YDB_ERR_BAD_REQUEST, "invalid bytes list item");
+  }
+  b->slot->AddListItem().String(
+      std::string(static_cast<const char *>(data), len));
+  return YDB_OK;
+}
+
+ydb_status_t ydb_params_add_list_item_null(YdbParamBuilder *b,
+                                           YdbResultDetails *rd) {
+  CHECK_RD(rd);
+  if (!b || !b->slot) {
+    return RD(YDB_ERR_BAD_REQUEST, "list builder is null");
+  }
+  b->slot->AddListItem().EmptyOptional();
   return YDB_OK;
 }
 
@@ -437,10 +575,7 @@ ydb_status_t ydb_params_add_member_null(YdbParamBuilder *b, const char *field,
   return YDB_OK;
 }
 
-// TODO: YDB can get results as stream without bufferization
-// ws can get results line-by-line
-// though we should not expose the method to the user
-int ydb_resultsets_count(const YdbResultSets *rs, YdbResultDetails *rd) {
+static int ydb_resultsets_count(const YdbResultSets *rs, YdbResultDetails *rd) {
   CHECK_RD_INT(rd, -1);
   if (!rs) {
     return RD(YDB_ERR_BAD_REQUEST, "result sets is null");
@@ -465,7 +600,6 @@ int ydb_resultset_column_count(const YdbResultSet *rs, YdbResultDetails *rd) {
   return static_cast<int>(rs->parser.ColumnsCount());
 }
 
-[[deprecated("will be added later")]]
 const char *ydb_resultset_column_name(const YdbResultSet *rs, int col_index,
                                       YdbResultDetails *rd) {
   CHECK_RD_PTR(rd);
@@ -478,7 +612,6 @@ const char *ydb_resultset_column_name(const YdbResultSet *rs, int col_index,
       .Name.c_str();
 }
 
-[[deprecated("will be added later")]]
 ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index,
                                      YdbResultDetails *rd) {
   if (!rs || col_index < 0 || col_index >= rs->parser.ColumnsCount())
