@@ -84,7 +84,6 @@ int main(void) {
   st = ydb_params_set_utf8(params, "$name", "manual-retry-demo", rd);
   check_status(st, "set $name", rd);
 
-  /* User-managed retry policy with library-provided settings object. */
   rs = ydb_query_retry_settings_create(5, 200, rd);
   if (!rs) {
     fprintf(stderr, "ydb_query_retry_settings_create failed: %s\n",

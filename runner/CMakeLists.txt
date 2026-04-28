@@ -7,6 +7,7 @@ target_include_directories(basic_example
 target_sources(basic_example PRIVATE
   # main.cpp
   wrapper.c
+  # param_builder.c
 )
 
 target_link_libraries(basic_example PRIVATE

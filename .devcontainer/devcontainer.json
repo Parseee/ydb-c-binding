@@ -29,7 +29,8 @@
 				"Gruntfuggly.todo-tree"
 			],
 			"settings": {
-				"terminal.integrated.defaultProfile.linux": "zsh"
+				"terminal.integrated.defaultProfile.linux": "zsh",
+				"clangd.path": "clangd-18"
 			}
 		}
 	},
