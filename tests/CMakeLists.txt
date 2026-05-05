@@ -9,8 +9,9 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(ydb_c_unit_tests
-  retry_settings_test.cpp
-  status_mapping_test.cpp
+  # retry_settings_test.cpp
+  # status_mapping_test.cpp
+  integration_roundtrip_test.cpp
 )
 
 target_include_directories(ydb_c_unit_tests

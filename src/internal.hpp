@@ -139,9 +139,15 @@ inline void ydb_fail_void(YdbResultDetails *rd, ydb_status_t code,
   (void)ydb_result_details_fail(rd, code, msg ? msg : "");
 }
 
-  // 0 := error
+// 0 := error
 inline int ydb_fail_int(YdbResultDetails *rd, ydb_status_t code,
                         const char *msg) {
   ydb_result_details_fail(rd, code, msg ? msg : "");
   return 0;
+}
+
+inline ydb_type_t ydb_fail_type_t(YdbResultDetails *rd, ydb_status_t code,
+                                  const char *msg) {
+  ydb_result_details_fail(rd, code, msg ? msg : "");
+  return YDB_TYPE_UNKNOWN;
 }

@@ -235,7 +235,7 @@ ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index,
 int ydb_resultset_next_row(YdbResultSet *rs,
                            YdbResultDetails *rd); // 0 if done
 
-ydb_status_t ydb_resultset_get_utf8(YdbResultSet *rs, int col, const char **out,
+ydb_status_t ydb_resultset_get_utf8_view(YdbResultSet *rs, int col, const char **out,
                                     size_t *out_len, YdbResultDetails *rd);
 ydb_status_t ydb_resultset_get_int64(YdbResultSet *rs, int col, int64_t *out,
                                      YdbResultDetails *rd);
@@ -245,10 +245,9 @@ ydb_status_t ydb_resultset_get_double(YdbResultSet *rs, int col, double *out,
                                       YdbResultDetails *rd);
 ydb_status_t ydb_resultset_get_bool(YdbResultSet *rs, int col, int *out,
                                     YdbResultDetails *rd);
-ydb_status_t ydb_resultset_get_bytes(YdbResultSet *rs, int col,
+ydb_status_t ydb_resultset_get_bytes_view(YdbResultSet *rs, int col,
                                      const void **out, size_t *out_len,
                                      YdbResultDetails *rd);
-int ydb_resultset_is_null(YdbResultSet *rs, int col, YdbResultDetails *rd);
 
 #ifdef __cplusplus
 }

@@ -84,7 +84,7 @@ ydb_status_t ydb_driver_config_set_endpoint(YdbDriverConfig *cfg, const char *v,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "failed to set set endpoint");
   }
-  return YdbExceptionGuard(ydb_fail_ptr, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     cfg->endpoint = v;
     return YDB_OK;
   })();
@@ -98,7 +98,7 @@ ydb_status_t ydb_driver_config_set_database(YdbDriverConfig *cfg, const char *v,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "failed to set database");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     cfg->database = v;
     return YDB_OK;
   })();
@@ -113,7 +113,7 @@ ydb_status_t ydb_driver_config_set_auth_token(YdbDriverConfig *cfg,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "failed to set auth token");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     cfg->auth_token = v;
     return YDB_OK;
   })();
@@ -218,6 +218,7 @@ void ydb_query_params_free(YdbQueryParams *p, YdbResultDetails *rd) {
   delete p;
 }
 
+// returns non owining view on the utf8 using internal scratch-buffer
 ydb_status_t ydb_params_set_utf8(YdbQueryParams *p, const char *name,
                                  const char *value, YdbResultDetails *rd) {
   if (ydb_check_rd_fatal(rd, __func__)) {
@@ -227,7 +228,7 @@ ydb_status_t ydb_params_set_utf8(YdbQueryParams *p, const char *name,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid utf8 parameter");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     p->builder.AddParam(name).Utf8(value).Build();
     return YDB_OK;
   })();
@@ -242,7 +243,7 @@ ydb_status_t ydb_params_set_int64(YdbQueryParams *p, const char *name,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid int64 parameter");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     p->builder.AddParam(name).Int64(value).Build();
     return YDB_OK;
   })();
@@ -257,7 +258,7 @@ ydb_status_t ydb_params_set_uint64(YdbQueryParams *p, const char *name,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid uint64 parameter");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     p->builder.AddParam(name).Uint64(value).Build();
     return YDB_OK;
   })();
@@ -271,7 +272,7 @@ ydb_status_t ydb_params_set_double(YdbQueryParams *p, const char *name,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid double parameter");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     p->builder.AddParam(name).Double(value).Build();
     return YDB_OK;
   })();
@@ -285,7 +286,7 @@ ydb_status_t ydb_params_set_bool(YdbQueryParams *p, const char *name, int value,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid bool parameter");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     p->builder.AddParam(name).Bool(value != 0).Build();
     return YDB_OK;
   })();
@@ -300,7 +301,7 @@ ydb_status_t ydb_params_set_bytes(YdbQueryParams *p, const char *name,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid bytes parameter");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     p->builder.AddParam(name)
         .String(std::string(static_cast<const char *>(data), len))
         .Build();
@@ -316,7 +317,7 @@ YdbParamBuilder *ydb_params_begin_param(YdbQueryParams *p, const char *name,
                             "param builder requires name");
     return nullptr;
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_ptr, rd, [&]() -> YdbParamBuilder * {
     auto b = std::make_unique<YdbParamBuilder>();
     b->owner = p;
     b->slot = &p->builder.AddParam(name);
@@ -332,7 +333,7 @@ ydb_status_t ydb_params_end_param(YdbParamBuilder *b, YdbResultDetails *rd) {
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "param builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->Build();
     delete b;
     return YDB_OK;
@@ -347,7 +348,7 @@ ydb_status_t ydb_params_begin_list(YdbParamBuilder *b, YdbResultDetails *rd) {
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "list builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->BeginList();
     return YDB_OK;
   })();
@@ -362,7 +363,7 @@ ydb_status_t ydb_params_add_list_item(YdbParamBuilder *b,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "list builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddListItem();
     return YDB_OK;
   })();
@@ -377,7 +378,7 @@ ydb_status_t ydb_params_add_list_item_bool(YdbParamBuilder *b, int v,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "list builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddListItem().Bool(v != 0);
     return YDB_OK;
   })();
@@ -392,7 +393,7 @@ ydb_status_t ydb_params_add_list_item_int32(YdbParamBuilder *b, int32_t v,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "list builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddListItem().Int32(v);
     return YDB_OK;
   })();
@@ -407,7 +408,7 @@ ydb_status_t ydb_params_add_list_item_uint32(YdbParamBuilder *b, uint32_t v,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "list builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddListItem().Uint32(v);
     return YDB_OK;
   })();
@@ -422,7 +423,7 @@ ydb_status_t ydb_params_add_list_item_int64(YdbParamBuilder *b, int64_t v,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "list builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddListItem().Int64(v);
     return YDB_OK;
   })();
@@ -437,7 +438,7 @@ ydb_status_t ydb_params_add_list_item_uint64(YdbParamBuilder *b, uint64_t v,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "list builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddListItem().Uint64(v);
     return YDB_OK;
   })();
@@ -452,7 +453,7 @@ ydb_status_t ydb_params_add_list_item_float(YdbParamBuilder *b, float v,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "list builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddListItem().Float(v);
     return YDB_OK;
   })();
@@ -467,7 +468,7 @@ ydb_status_t ydb_params_add_list_item_double(YdbParamBuilder *b, double v,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "list builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddListItem().Double(v);
     return YDB_OK;
   })();
@@ -489,7 +490,7 @@ ydb_status_t ydb_params_add_list_item_utf8(YdbParamBuilder *b, const char *v,
         rd, YDB_ERR_BAD_REQUEST,
         "invalid utf8 list item: missing null terminator or too long");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     const size_t len =
         static_cast<size_t>(static_cast<const char *>(terminator) - v);
     b->slot->AddListItem().Utf8(std::string(v, len));
@@ -507,7 +508,7 @@ ydb_status_t ydb_params_add_list_item_bytes(YdbParamBuilder *b,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid bytes list item");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddListItem().String(
         std::string(static_cast<const char *>(data), len));
     return YDB_OK;
@@ -523,7 +524,7 @@ ydb_status_t ydb_params_add_list_item_null(YdbParamBuilder *b,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "list builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddListItem().EmptyOptional();
     return YDB_OK;
   })();
@@ -537,7 +538,7 @@ ydb_status_t ydb_params_end_list(YdbParamBuilder *b, YdbResultDetails *rd) {
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "list builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->EndList();
     return YDB_OK;
   })();
@@ -551,7 +552,7 @@ ydb_status_t ydb_params_begin_struct(YdbParamBuilder *b, YdbResultDetails *rd) {
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "struct builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->BeginStruct();
     return YDB_OK;
   })();
@@ -565,7 +566,7 @@ ydb_status_t ydb_params_end_struct(YdbParamBuilder *b, YdbResultDetails *rd) {
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "struct builder is null");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->EndStruct();
     return YDB_OK;
   })();
@@ -580,7 +581,7 @@ ydb_status_t ydb_params_add_member_bool(YdbParamBuilder *b, const char *field,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid bool member");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddMember(field).Bool(v != 0);
     return YDB_OK;
   })();
@@ -594,7 +595,7 @@ ydb_status_t ydb_params_add_member_int32(YdbParamBuilder *b, const char *field,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid int32 member");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddMember(field).Int32(v);
     return YDB_OK;
   })();
@@ -608,7 +609,7 @@ ydb_status_t ydb_params_add_member_uint32(YdbParamBuilder *b, const char *field,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid uint32 member");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddMember(field).Uint32(v);
     return YDB_OK;
   })();
@@ -622,7 +623,7 @@ ydb_status_t ydb_params_add_member_int64(YdbParamBuilder *b, const char *field,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid int64 member");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddMember(field).Int64(v);
     return YDB_OK;
   })();
@@ -636,7 +637,7 @@ ydb_status_t ydb_params_add_member_uint64(YdbParamBuilder *b, const char *field,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid uint64 member");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddMember(field).Uint64(v);
     return YDB_OK;
   })();
@@ -650,7 +651,7 @@ ydb_status_t ydb_params_add_member_float(YdbParamBuilder *b, const char *field,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid float member");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddMember(field).Float(v);
     return YDB_OK;
   })();
@@ -664,7 +665,7 @@ ydb_status_t ydb_params_add_member_double(YdbParamBuilder *b, const char *field,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid double member");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddMember(field).Double(v);
     return YDB_OK;
   })();
@@ -686,7 +687,7 @@ ydb_status_t ydb_params_add_member_utf8(YdbParamBuilder *b, const char *field,
         "invalid utf8 member: missing null terminator or too long");
   }
 
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     const size_t len =
         static_cast<size_t>(static_cast<const char *>(terminator) - v);
     b->slot->AddMember(field).Utf8(std::string(v, len));
@@ -703,7 +704,7 @@ ydb_status_t ydb_params_add_member_bytes(YdbParamBuilder *b, const char *field,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid bytes member");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddMember(field).String(
         std::string(static_cast<const char *>(data), len));
     return YDB_OK;
@@ -718,7 +719,7 @@ ydb_status_t ydb_params_add_member_null(YdbParamBuilder *b, const char *field,
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "invalid null member");
   }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     b->slot->AddMember(field).EmptyOptional();
     return YDB_OK;
   })();
@@ -783,7 +784,7 @@ const char *ydb_resultset_column_name(const YdbResultSet *rs, int col_index,
 
 ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index,
                                      YdbResultDetails *rd) {
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_type_t, rd, [&]() -> ydb_type_t {
     if (!rs || col_index < 0 || col_index >= rs->parser.ColumnsCount()) {
       return YDB_TYPE_UNKNOWN;
     }
@@ -813,24 +814,14 @@ int ydb_resultset_next_row(YdbResultSet *rs, YdbResultDetails *rd) {
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "result set is null");
   }
-  return YdbExceptionGuard(ydb_fail_int, rd,
-                           [&]() { return rs->parser.TryNextRow() ? 1 : 0; })();
-}
-int ydb_resultset_is_null(YdbResultSet *rs, int col, YdbResultDetails *rd) {
-  if (ydb_check_rd_fatal(rd, __func__)) {
-    return (-1);
-  }
-  return YdbExceptionGuard(ydb_fail_int, rd, [&]() {
-    if (!rs || col < 0 || col >= static_cast<int>(rs->parser.ColumnsCount())) {
-      return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
-                                     "invalid column index");
-    }
-    return rs->parser.ColumnParser(static_cast<size_t>(col)).IsNull() ? 1 : 0;
+  return YdbExceptionGuard(ydb_fail_int, rd, [&]() -> int {
+    return rs->parser.TryNextRow() ? 1 : 0;
   })();
 }
 
-ydb_status_t ydb_resultset_get_utf8(YdbResultSet *rs, int col, const char **out,
-                                    size_t *out_len, YdbResultDetails *rd) {
+ydb_status_t ydb_resultset_get_utf8_view(YdbResultSet *rs, int col,
+                                         const char **out, size_t *out_len,
+                                         YdbResultDetails *rd) {
   if (ydb_check_rd_fatal(rd, __func__)) {
     return rd->code;
   }
@@ -936,9 +927,10 @@ ydb_status_t ydb_resultset_get_bool(YdbResultSet *rs, int col, int *out,
     return YDB_OK;
   })();
 }
-ydb_status_t ydb_resultset_get_bytes(YdbResultSet *rs, int col,
-                                     const void **out, size_t *out_len,
-                                     YdbResultDetails *rd) {
+// returns non owining view on the bytes using internal scratch-buffer
+ydb_status_t ydb_resultset_get_bytes_view(YdbResultSet *rs, int col,
+                                          const void **out, size_t *out_len,
+                                          YdbResultDetails *rd) {
   if (ydb_check_rd_fatal(rd, __func__)) {
     return rd->code;
   }
