@@ -190,7 +190,6 @@ ydb_status_t ydb_driver_wait_ready(YdbDriver *drv, uint32_t timeout_ms,
   })();
 }
 
-// FIXME: rd is null here
 void ydb_driver_free(YdbDriver *drv) {
   if (!drv) {
     return;
@@ -745,7 +744,10 @@ YdbResultSet *ydb_resultsets_release(YdbResultSets *rs, int index,
                             "result set index is out of range");
     return nullptr;
   }
-  return rs->sets[static_cast<size_t>(index)].release();
+
+  return YdbExceptionGuard(ydb_fail_ptr, rd, [&]() {
+    return rs->sets[static_cast<size_t>(index)].release();
+  })();
 }
 void ydb_resultsets_free(YdbResultSets *rs, YdbResultDetails *rd) { delete rs; }
 int ydb_resultset_column_count(const YdbResultSet *rs, YdbResultDetails *rd) {
@@ -756,7 +758,10 @@ int ydb_resultset_column_count(const YdbResultSet *rs, YdbResultDetails *rd) {
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "result set is null");
   }
-  return static_cast<int>(rs->parser.ColumnsCount());
+
+  return YdbExceptionGuard(ydb_fail_int, rd, [&]() -> int {
+    return static_cast<int>(rs->parser.ColumnsCount());
+  })();
 }
 
 const char *ydb_resultset_column_name(const YdbResultSet *rs, int col_index,
@@ -764,20 +769,24 @@ const char *ydb_resultset_column_name(const YdbResultSet *rs, int col_index,
   if (ydb_check_rd_fatal(rd, __func__)) {
     return nullptr;
   }
-  if (!rs || col_index < 0 ||
-      col_index >= static_cast<int>(rs->resultSet.GetColumnsMeta().size())) {
-    ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST, "invalid column index");
-    return nullptr;
-  }
-  return rs->resultSet.GetColumnsMeta()[static_cast<size_t>(col_index)]
-      .Name.c_str();
+
+  return YdbExceptionGuard(ydb_fail_ptr, rd, [&]() -> const char * {
+    if (!rs || col_index < 0 ||
+        col_index >= static_cast<int>(rs->resultSet.GetColumnsMeta().size())) {
+      ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST, "invalid column index");
+      return nullptr;
+    }
+    return rs->resultSet.GetColumnsMeta()[static_cast<size_t>(col_index)]
+        .Name.c_str();
+  })();
 }
 
 ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index,
                                      YdbResultDetails *rd) {
-  try {
-    if (!rs || col_index < 0 || col_index >= rs->parser.ColumnsCount())
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+    if (!rs || col_index < 0 || col_index >= rs->parser.ColumnsCount()) {
       return YDB_TYPE_UNKNOWN;
+    }
 
     const auto &type = rs->resultSet.GetColumnsMeta()[col_index].Type;
     NYdb::TTypeParser parser(type);
@@ -787,19 +796,15 @@ ydb_type_t ydb_resultset_column_type(const YdbResultSet *rs, int col_index,
       return YDB_TYPE_OPTIONAL;
     }
 
-    if (parser.GetKind() == NYdb::TTypeParser::ETypeKind::Primitive)
+    if (parser.GetKind() == NYdb::TTypeParser::ETypeKind::Primitive) {
       return static_cast<ydb_type_t>(
           static_cast<uint32_t>(parser.GetPrimitive()));
+    }
 
     return YDB_TYPE_UNKNOWN;
-  } catch (const std::exception &e) {
-    ydb_result_details_fail(rd, YDB_ERR_INTERNAL, e.what());
-    return (YDB_TYPE_UNKNOWN);
-  } catch (...) {
-    ydb_result_details_fail(rd, YDB_ERR_INTERNAL, "uncaught C++ exception");
-    return (YDB_TYPE_UNKNOWN);
-  }
+  })();
 }
+
 int ydb_resultset_next_row(YdbResultSet *rs, YdbResultDetails *rd) {
   if (ydb_check_rd_fatal(rd, __func__)) {
     return (-1);
@@ -808,17 +813,18 @@ int ydb_resultset_next_row(YdbResultSet *rs, YdbResultDetails *rd) {
     return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                    "result set is null");
   }
-  return rs->parser.TryNextRow() ? 1 : 0;
+  return YdbExceptionGuard(ydb_fail_int, rd,
+                           [&]() { return rs->parser.TryNextRow() ? 1 : 0; })();
 }
 int ydb_resultset_is_null(YdbResultSet *rs, int col, YdbResultDetails *rd) {
   if (ydb_check_rd_fatal(rd, __func__)) {
     return (-1);
   }
-  if (!rs || col < 0 || col >= static_cast<int>(rs->parser.ColumnsCount())) {
-    return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
-                                   "invalid column index");
-  }
-  return YdbExceptionGuard(ydb_fail_status, rd, [&]() {
+  return YdbExceptionGuard(ydb_fail_int, rd, [&]() {
+    if (!rs || col < 0 || col >= static_cast<int>(rs->parser.ColumnsCount())) {
+      return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
+                                     "invalid column index");
+    }
     return rs->parser.ColumnParser(static_cast<size_t>(col)).IsNull() ? 1 : 0;
   })();
 }
@@ -828,12 +834,12 @@ ydb_status_t ydb_resultset_get_utf8(YdbResultSet *rs, int col, const char **out,
   if (ydb_check_rd_fatal(rd, __func__)) {
     return rd->code;
   }
-  if (!rs || !out || !out_len || col < 0 ||
-      col >= static_cast<int>(rs->parser.ColumnsCount())) {
-    return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
-                                   "invalid utf8 getter arguments");
-  }
   return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
+    if (!rs || !out || !out_len || col < 0 ||
+        col >= static_cast<int>(rs->parser.ColumnsCount())) {
+      return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
+                                     "invalid utf8 getter arguments");
+    }
     auto value =
         rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalUtf8();
     if (!value.has_value()) {
@@ -851,12 +857,12 @@ ydb_status_t ydb_resultset_get_int64(YdbResultSet *rs, int col, int64_t *out,
   if (ydb_check_rd_fatal(rd, __func__)) {
     return rd->code;
   }
-  if (!rs || !out || col < 0 ||
-      col >= static_cast<int>(rs->parser.ColumnsCount())) {
-    return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
-                                   "invalid int64 getter arguments");
-  }
   return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
+    if (!rs || !out || col < 0 ||
+        col >= static_cast<int>(rs->parser.ColumnsCount())) {
+      return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
+                                     "invalid int64 getter arguments");
+    }
     auto value =
         rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalInt64();
     if (!value.has_value()) {
@@ -872,12 +878,12 @@ ydb_status_t ydb_resultset_get_uint64(YdbResultSet *rs, int col, uint64_t *out,
   if (ydb_check_rd_fatal(rd, __func__)) {
     return rd->code;
   }
-  if (!rs || !out || col < 0 ||
-      col >= static_cast<int>(rs->parser.ColumnsCount())) {
-    return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
-                                   "invalid uint64 getter arguments");
-  }
   return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
+    if (!rs || !out || col < 0 ||
+        col >= static_cast<int>(rs->parser.ColumnsCount())) {
+      return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
+                                     "invalid uint64 getter arguments");
+    }
     auto value =
         rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalUint64();
     if (!value.has_value()) {
@@ -893,12 +899,12 @@ ydb_status_t ydb_resultset_get_double(YdbResultSet *rs, int col, double *out,
   if (ydb_check_rd_fatal(rd, __func__)) {
     return rd->code;
   }
-  if (!rs || !out || col < 0 ||
-      col >= static_cast<int>(rs->parser.ColumnsCount())) {
-    return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
-                                   "invalid double getter arguments");
-  }
   return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
+    if (!rs || !out || col < 0 ||
+        col >= static_cast<int>(rs->parser.ColumnsCount())) {
+      return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
+                                     "invalid double getter arguments");
+    }
     auto value =
         rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalDouble();
     if (!value.has_value()) {
@@ -914,12 +920,12 @@ ydb_status_t ydb_resultset_get_bool(YdbResultSet *rs, int col, int *out,
   if (ydb_check_rd_fatal(rd, __func__)) {
     return rd->code;
   }
-  if (!rs || !out || col < 0 ||
-      col >= static_cast<int>(rs->parser.ColumnsCount())) {
-    return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
-                                   "invalid bool getter arguments");
-  }
   return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
+    if (!rs || !out || col < 0 ||
+        col >= static_cast<int>(rs->parser.ColumnsCount())) {
+      return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
+                                     "invalid bool getter arguments");
+    }
     auto value =
         rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalBool();
     if (!value.has_value()) {
@@ -936,12 +942,12 @@ ydb_status_t ydb_resultset_get_bytes(YdbResultSet *rs, int col,
   if (ydb_check_rd_fatal(rd, __func__)) {
     return rd->code;
   }
-  if (!rs || !out || !out_len || col < 0 ||
-      col >= static_cast<int>(rs->parser.ColumnsCount())) {
-    return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
-                                   "invalid bytes getter arguments");
-  }
   return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
+    if (!rs || !out || !out_len || col < 0 ||
+        col >= static_cast<int>(rs->parser.ColumnsCount())) {
+      return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
+                                     "invalid bytes getter arguments");
+    }
     auto value =
         rs->parser.ColumnParser(static_cast<size_t>(col)).GetOptionalBytes();
     if (!value.has_value()) {

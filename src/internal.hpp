@@ -138,3 +138,10 @@ inline void ydb_fail_void(YdbResultDetails *rd, ydb_status_t code,
                           const char *msg) {
   (void)ydb_result_details_fail(rd, code, msg ? msg : "");
 }
+
+  // 0 := error
+inline int ydb_fail_int(YdbResultDetails *rd, ydb_status_t code,
+                        const char *msg) {
+  ydb_result_details_fail(rd, code, msg ? msg : "");
+  return 0;
+}
