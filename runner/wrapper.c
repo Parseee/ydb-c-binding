@@ -28,7 +28,7 @@ int main(void) {
   YdbQueryParams *params = NULL;
   YdbQueryRetrySettings *rs = NULL;
 
-  if (ydb_result_details_init(rd) != 0) {
+  if (ydb_result_details_init(&rd) != 0) {
     fprintf(stderr, "result details creation failed\n");
     return -1;
   }

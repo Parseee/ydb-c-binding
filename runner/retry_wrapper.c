@@ -10,7 +10,8 @@ static const char *details_message(const YdbResultDetails *rd) {
   return get_message(rd);
 }
 
-static void check_status(ydb_status_t st, const char *op,
+// TODO: better name format
+static void format_status(ydb_status_t st, const char *op,
                          const YdbResultDetails *rd) {
   if (st != YDB_OK) {
     fprintf(stderr, "%s failed (code=%d): %s\n", op, st, details_message(rd));
@@ -28,7 +29,8 @@ int main(void) {
   YdbQueryRetrySettings *rs = NULL;
   YdbQueryTransaction *tx = NULL;
 
-  if (ydb_result_details_init(rd) != 0) {
+  // TODO: fix this pass pointer by value. how does this even work??
+  if (ydb_result_details_init(&rd) != 0) {
     fprintf(stderr, "result details creation failed\n");
     return -1;
   }
@@ -40,10 +42,10 @@ int main(void) {
   }
 
   st = ydb_driver_config_set_endpoint(cfg, "ydb-local:2136", rd);
-  check_status(st, "set_endpoint", rd);
+  format_status(st, "set_endpoint", rd);
 
   st = ydb_driver_config_set_database(cfg, "/local", rd);
-  check_status(st, "set_database", rd);
+  format_status(st, "set_database", rd);
 
   drv = ydb_driver_create(cfg, rd);
   ydb_driver_config_free(cfg);
@@ -68,7 +70,7 @@ int main(void) {
                               "name Utf8,"
                               "PRIMARY KEY (id));",
                               NULL, NULL, rd);
-  check_status(st, "create users table", rd);
+  format_status(st, "create users table", rd);
 
   params = ydb_query_params_create(rd);
   if (!params) {
@@ -80,9 +82,9 @@ int main(void) {
   }
 
   st = ydb_params_set_uint64(params, "$id", 42, rd);
-  check_status(st, "set $id", rd);
+  format_status(st, "set $id", rd);
   st = ydb_params_set_utf8(params, "$name", "manual-retry-demo", rd);
-  check_status(st, "set $name", rd);
+  format_status(st, "set $name", rd);
 
   rs = ydb_query_retry_settings_create(5, 200, rd);
   if (!rs) {
@@ -99,7 +101,7 @@ int main(void) {
     if (st != YDB_OK) {
       if (!ydb_is_status_retriable(st) ||
           ydb_query_perform_retry(rs, rd) != YDB_OK) {
-        check_status(st, "begin_tx", rd);
+        format_status(st, "begin_tx", rd);
       }
       continue;
     }
@@ -115,12 +117,12 @@ int main(void) {
     ydb_query_tx_free(tx, rd);
     tx = NULL;
 
+    // TODO: remove excessive checks
     if (st == YDB_OK) {
       break;
     }
-    if (!ydb_is_status_retriable(st) ||
-        ydb_query_perform_retry(rs, rd) != YDB_OK) {
-      check_status(st, "upsert with retries", rd);
+    if (ydb_query_perform_retry (rs, rd) != YDB_OK) {
+      format_status(st, "upsert with retries", rd);
     }
   }
 

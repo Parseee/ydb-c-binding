@@ -1,4 +1,5 @@
 #include "internal.hpp"
+#include "ydb.h"
 #include "ydb_error.h"
 
 #include <cstdlib>
@@ -7,19 +8,18 @@
 
 #include <ydb-cpp-sdk/client/types/status_codes.h>
 
-namespace {} // namespace
+// namespace {} // namespace
 
 extern "C" {
 
-int ydb_result_details_init(YdbResultDetails *d) {
-
+int ydb_result_details_init(YdbResultDetails **d) {
   try {
-    d = new YdbResultDetails;
-    d->code = 0;
-    d->message = std::string();
-    d->context = std::string();
+    (*d) = new YdbResultDetails;
+    (*d)->code = 0;
+    (*d)->message = std::string();
+    (*d)->context = std::string();
     return 0;
-  } catch(...) {
+  } catch (...) {
     return -1;
   }
 }
@@ -46,6 +46,7 @@ const char *get_message(const YdbResultDetails *d) {
   return d->message.c_str();
 }
 
+// TODO: move to private
 int ydb_is_status_retriable(ydb_status_t sdk_status_code) {
   using NYdb::EStatus;
   EStatus s = static_cast<EStatus>(sdk_status_code);
@@ -62,24 +63,6 @@ int ydb_is_status_retriable(ydb_status_t sdk_status_code) {
   default:
     return 0;
   }
-}
-
-ydb_status_t ydb_result_details_fail(YdbResultDetails *d, ydb_status_t code,
-                                     const char *msg) {
-  if (d) {
-    d->code = code;
-    ydb_result_details_set_message(d, msg ? msg : "");
-  }
-
-  if (msg) {
-    ydb_result_details_print(msg);
-  }
-
-  return code;
-}
-
-void ydb_result_details_print(const char *err_msg) {
-  std::cout << "[ydb-c]: " << err_msg << std::endl;
 }
 
 } // extern "C"
@@ -120,26 +103,9 @@ void ydb_result_details_set_status(YdbResultDetails *d, ydb_status_t code) {
   d->code = code;
 }
 
-ydb_status_t ydb_rd_fail(YdbResultDetails *rd, ydb_status_t code,
-                         const char *details) {
-  return ydb_result_details_fail(rd, code, details);
-}
-
 void ydb_append_fatal_context(YdbResultDetails *rd, const char *func) {
   std::string error_msg = std::string("from ") + func;
   ydb_result_details_append_message(rd, error_msg.c_str());
-}
-
-std::optional<ydb_status_t> ydb_check_rd_status(YdbResultDetails *rd,
-                                                const char *func) {
-  if (!rd) {
-    return YDB_OK;
-  }
-  if (isFatal(rd)) {
-    ydb_append_fatal_context(rd, func);
-    return rd->code;
-  }
-  return std::nullopt;
 }
 
 bool ydb_check_rd_fatal(YdbResultDetails *rd, const char *func) {
@@ -150,26 +116,41 @@ bool ydb_check_rd_fatal(YdbResultDetails *rd, const char *func) {
   return false;
 }
 
-void ydb_result_details_set_message(YdbResultDetails *d,
-                                    const std::string &msg) {
+void ydb_result_details_set_message(YdbResultDetails *d, std::string msg) {
   if (!d) {
     return;
   }
-  d->message = msg;
+  d->message = std::move(msg);
 }
 
-void ydb_result_details_append_message(YdbResultDetails *d,
-                                       const std::string &msg) {
+void ydb_result_details_append_message(YdbResultDetails *d, std::string msg) {
   if (!d) {
     return;
   }
   d->message += msg;
 }
 
-void ydb_result_details_set_context(YdbResultDetails *d,
-                                    const std::string &ctx) {
+void ydb_result_details_set_context(YdbResultDetails *d, std::string ctx) {
   if (!d) {
     return;
   }
-  d->context = ctx;
+  d->context = std::move(ctx);
+}
+
+void ydb_result_details_print(const std::string &msg) {
+  std::cout << "[ydb-c]: " << msg << std::endl;
+}
+
+ydb_status_t ydb_result_details_fail(YdbResultDetails *d, ydb_status_t code,
+                                     std::string msg) {
+  if (d) {
+    d->code = code;
+    ydb_result_details_set_message(d, std::move(msg));
+  }
+
+  if (!msg.empty()) {
+    ydb_result_details_print(msg.c_str());
+  }
+
+  return code;
 }

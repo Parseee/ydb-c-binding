@@ -9,9 +9,12 @@
 #include <ydb-cpp-sdk/client/result/result.h>
 #include <ydb-cpp-sdk/client/table/table.h>
 
+#include <cstddef>
+#include <exception>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 struct YdbDriverConfig {
@@ -84,19 +87,54 @@ ydb_status_t ydb_fill_from_status(YdbResultDetails *details,
 bool isFatal(YdbResultDetails *rd);
 
 void ydb_result_details_set_status(YdbResultDetails *rd, ydb_status_t code);
-void ydb_result_details_set_message(YdbResultDetails *rd,
-                                    const std::string &msg);
-void ydb_result_details_append_message(YdbResultDetails *rd,
-                                       const std::string &msg);
-void ydb_result_details_set_context(YdbResultDetails *rd,
-                                    const std::string &ctx);
-
-ydb_status_t ydb_rd_fail(YdbResultDetails *rd, ydb_status_t code,
-                         const char *details);
+void ydb_result_details_set_message(YdbResultDetails *rd, std::string msg);
+void ydb_result_details_append_message(YdbResultDetails *rd, std::string msg);
+void ydb_result_details_set_context(YdbResultDetails *rd, std::string ctx);
+void ydb_result_details_print(const std::string &msg);
 
 void ydb_append_fatal_context(YdbResultDetails *rd, const char *func);
 
 std::optional<ydb_status_t> ydb_check_rd_status(YdbResultDetails *rd,
                                                 const char *func);
+ydb_status_t ydb_result_details_fail(YdbResultDetails *rd, ydb_status_t code,
+                                     std::string msg);
 
 bool ydb_check_rd_fatal(YdbResultDetails *rd, const char *func);
+
+template <typename Func, typename FailWith> struct YdbExceptionGuard {
+  FailWith fail;
+  YdbResultDetails *rd;
+  Func func;
+
+  explicit YdbExceptionGuard(FailWith fail_with, YdbResultDetails *rd, Func f)
+      : fail(std::move(fail_with)), rd(rd), func(std::move(f)) {}
+
+  template <typename... Args>
+  auto
+  operator()(Args &&...args) -> decltype(func(std::forward<Args>(args)...)) {
+    try {
+      return std::forward<Func>(func)(std::forward<Args>(args)...);
+    } catch (const std::exception &e) {
+      return std::forward<FailWith>(fail)(rd, YDB_ERR_INTERNAL, e.what());
+    } catch (...) {
+      return std::forward<FailWith>(fail)(rd, YDB_ERR_INTERNAL,
+                                          "uncaught cpp exception");
+    }
+  }
+};
+
+inline ydb_status_t ydb_fail_status(YdbResultDetails *rd, ydb_status_t code,
+                                    const char *msg) {
+  return ydb_result_details_fail(rd, code, msg ? msg : "");
+}
+
+inline std::nullptr_t ydb_fail_ptr(YdbResultDetails *rd, ydb_status_t code,
+                                   const char *msg) {
+  (void)ydb_result_details_fail(rd, code, msg ? msg : "");
+  return nullptr;
+}
+
+inline void ydb_fail_void(YdbResultDetails *rd, ydb_status_t code,
+                          const char *msg) {
+  (void)ydb_result_details_fail(rd, code, msg ? msg : "");
+}

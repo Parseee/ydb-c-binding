@@ -129,8 +129,9 @@ ydb_status_t ydb_params_add_list_item_double(YdbParamBuilder *b, double v,
                                              YdbResultDetails *rd);
 ydb_status_t ydb_params_add_list_item_utf8(YdbParamBuilder *b, const char *v,
                                            YdbResultDetails *rd);
-ydb_status_t ydb_params_add_list_item_bytes(YdbParamBuilder *b, const void *data,
-                                            size_t len, YdbResultDetails *rd);
+ydb_status_t ydb_params_add_list_item_bytes(YdbParamBuilder *b,
+                                            const void *data, size_t len,
+                                            YdbResultDetails *rd);
 ydb_status_t ydb_params_add_list_item_null(YdbParamBuilder *b,
                                            YdbResultDetails *rd);
 ydb_status_t ydb_params_end_list(YdbParamBuilder *b, YdbResultDetails *rd);
@@ -222,7 +223,7 @@ void ydb_query_tx_free(YdbQueryTransaction *, YdbResultDetails *rd);
  * Result Iteration
  * ============================================================ */
 YdbResultSet *ydb_resultsets_release(YdbResultSets *rs, int index,
-                                 YdbResultDetails *rd);
+                                     YdbResultDetails *rd);
 void ydb_resultsets_free(YdbResultSets *rs, YdbResultDetails *rd);
 
 int ydb_resultset_column_count(const YdbResultSet *rs, YdbResultDetails *rd);

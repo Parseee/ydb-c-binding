@@ -18,7 +18,7 @@
 extern "C" {
 
 YdbQueryClient *ydb_query_client_create(YdbDriver *drv, YdbResultDetails *rd) {
-  try {
+  return YdbExceptionGuard(ydb_fail_ptr, rd, [&]() -> YdbQueryClient * {
     if (!drv || !drv->driver) {
       ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST, "driver is null");
       return nullptr;
@@ -34,19 +34,12 @@ YdbQueryClient *ydb_query_client_create(YdbDriver *drv, YdbResultDetails *rd) {
     qc->client = std::make_unique<NYdb::NQuery::TQueryClient>(*drv->driver);
     qc->parent_driver = drv;
     return qc;
-  } catch (const std::exception &e) {
-    ydb_result_details_fail(rd, YDB_ERR_INTERNAL, e.what());
-    return nullptr;
-  } catch (...) {
-    ydb_result_details_fail(rd, YDB_ERR_INTERNAL, "uncaught C++ exception");
-    return nullptr;
-  }
+  })();
 }
 void ydb_query_client_free(YdbQueryClient *qc) {
-  try {
+  YdbExceptionGuard(ydb_fail_void, nullptr, [&]() {
     delete qc;
-  } catch (...) {
-  }
+  })();
 }
 
 // DDL
@@ -54,7 +47,8 @@ ydb_status_t ydb_query_NOtx_execute(YdbQueryClient *qc, const char *yql,
                                     const YdbQueryParams *params,
                                     YdbResultSets **out_results,
                                     YdbResultDetails *result_details) {
-  try {
+  return YdbExceptionGuard(ydb_fail_status, result_details,
+                           [&]() -> ydb_status_t {
     if (!qc || !yql) {
       return ydb_result_details_fail(result_details, YDB_ERR_BAD_REQUEST,
                                      "query client or yql is null");
@@ -96,18 +90,13 @@ ydb_status_t ydb_query_NOtx_execute(YdbQueryClient *qc, const char *yql,
     }
 
     return YDB_OK;
-  } catch (const std::exception &e) {
-    return ydb_result_details_fail(result_details, YDB_ERR_INTERNAL, e.what());
-  } catch (...) {
-    return ydb_result_details_fail(result_details, YDB_ERR_INTERNAL,
-                                   "uncaught C++ exception");
-  }
+  })();
 }
 
 ydb_status_t ydb_query_begin_tx(YdbQueryClient *qc, ydb_tx_mode_t tx_mode,
                                 YdbQueryTransaction **out_tx,
                                 YdbResultDetails *rd) {
-  try {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     if (!qc || !out_tx) {
       return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                      "query client or out_tx is null");
@@ -162,19 +151,15 @@ ydb_status_t ydb_query_begin_tx(YdbQueryClient *qc, ydb_tx_mode_t tx_mode,
 
     *out_tx = wrapped;
     return YDB_OK;
-  } catch (const std::exception &e) {
-    return ydb_result_details_fail(rd, YDB_ERR_INTERNAL, e.what());
-  } catch (...) {
-    return ydb_result_details_fail(rd, YDB_ERR_INTERNAL,
-                                   "uncaught C++ exception");
-  }
+  })();
 }
 
 ydb_status_t ydb_query_tx_execute(YdbQueryTransaction *tx, const char *yql,
                                   const YdbQueryParams *params,
                                   YdbResultSets **out_results,
                                   YdbResultDetails *result_details) {
-  try {
+  return YdbExceptionGuard(ydb_fail_status, result_details,
+                           [&]() -> ydb_status_t {
     if (!tx || !yql) {
       return ydb_result_details_fail(result_details, YDB_ERR_BAD_REQUEST,
                                      "transaction or yql is null");
@@ -210,16 +195,12 @@ ydb_status_t ydb_query_tx_execute(YdbQueryTransaction *tx, const char *yql,
       *out_results = result_sets.release();
     }
     return YDB_OK;
-  } catch (const std::exception &e) {
-    return ydb_result_details_fail(result_details, YDB_ERR_INTERNAL, e.what());
-  } catch (...) {
-    return ydb_result_details_fail(result_details, YDB_ERR_INTERNAL,
-                                   "uncaught C++ exception");
-  }
+  })();
 }
 ydb_status_t ydb_query_tx_commit(YdbQueryTransaction *tx,
                                  YdbResultDetails *result_details) {
-  try {
+  return YdbExceptionGuard(ydb_fail_status, result_details,
+                           [&]() -> ydb_status_t {
     if (!tx) {
       return ydb_result_details_fail(result_details, YDB_ERR_BAD_REQUEST,
                                      "transaction is null");
@@ -230,16 +211,12 @@ ydb_status_t ydb_query_tx_commit(YdbQueryTransaction *tx,
     }
     auto result = tx->tx.Commit().GetValueSync();
     return ydb_fill_from_status(result_details, result);
-  } catch (const std::exception &e) {
-    return ydb_result_details_fail(result_details, YDB_ERR_INTERNAL, e.what());
-  } catch (...) {
-    return ydb_result_details_fail(result_details, YDB_ERR_INTERNAL,
-                                   "uncaught C++ exception");
-  }
+  })();
 }
 ydb_status_t ydb_query_tx_rollback(YdbQueryTransaction *tx,
                                    YdbResultDetails *result_details) {
-  try {
+  return YdbExceptionGuard(ydb_fail_status, result_details,
+                           [&]() -> ydb_status_t {
     if (!tx) {
       return ydb_result_details_fail(result_details, YDB_ERR_BAD_REQUEST,
                                      "transaction is null");
@@ -250,26 +227,18 @@ ydb_status_t ydb_query_tx_rollback(YdbQueryTransaction *tx,
     }
     auto result = tx->tx.Rollback().GetValueSync();
     return ydb_fill_from_status(result_details, result);
-  } catch (const std::exception &e) {
-    return ydb_result_details_fail(result_details, YDB_ERR_INTERNAL, e.what());
-  } catch (...) {
-    return ydb_result_details_fail(result_details, YDB_ERR_INTERNAL,
-                                   "uncaught C++ exception");
-  }
+  })();
 }
 void ydb_query_tx_free(YdbQueryTransaction *tx,
                        YdbResultDetails *result_details) {
-  try {
+  YdbExceptionGuard(ydb_fail_void, result_details, [&]() {
     if (!tx) {
       ydb_result_details_fail(result_details, YDB_ERR_BAD_REQUEST,
                               "transaction is null");
       return;
     }
     delete tx;
-  } catch (...) {
-    ydb_result_details_fail(result_details, YDB_ERR_INTERNAL,
-                            "uncaught C++ exception");
-  }
+  })();
 }
 
 /*
@@ -283,7 +252,7 @@ void ydb_query_tx_free(YdbQueryTransaction *tx,
 YdbQueryRetrySettings *ydb_query_retry_settings_create(uint32_t max_retries,
                                                        uint32_t timeout_ms,
                                                        YdbResultDetails *rd) {
-  try {
+  return YdbExceptionGuard(ydb_fail_ptr, rd, [&]() -> YdbQueryRetrySettings * {
     auto *rs = new (std::nothrow) YdbQueryRetrySettings();
     if (!rs) {
       ydb_result_details_fail(rd, YDB_ERR_INTERNAL,
@@ -294,28 +263,20 @@ YdbQueryRetrySettings *ydb_query_retry_settings_create(uint32_t max_retries,
     rs->current_retries = 0;
     rs->timeout_ms = timeout_ms;
     return rs;
-  } catch (const std::exception &e) {
-    ydb_result_details_fail(rd, YDB_ERR_INTERNAL, e.what());
-    return nullptr;
-  } catch (...) {
-    ydb_result_details_fail(rd, YDB_ERR_INTERNAL, "uncaught C++ exception");
-    return nullptr;
-  }
+  })();
 }
 
 void ydb_query_retry_settings_free(YdbQueryRetrySettings *rs,
                                    YdbResultDetails *rd) {
-  try {
+  YdbExceptionGuard(ydb_fail_void, rd, [&]() {
     (void)rd;
     delete rs;
-  } catch (...) {
-    ydb_result_details_fail(rd, YDB_ERR_INTERNAL, "uncaught C++ exception");
-  }
+  })();
 }
 
 ydb_status_t ydb_query_perform_retry(YdbQueryRetrySettings *rs,
                                      YdbResultDetails *rd) {
-  try {
+  return YdbExceptionGuard(ydb_fail_status, rd, [&]() -> ydb_status_t {
     if (!rs) {
       return ydb_result_details_fail(rd, YDB_ERR_BAD_REQUEST,
                                      "retry settings is null");
@@ -336,12 +297,7 @@ ydb_status_t ydb_query_perform_retry(YdbQueryRetrySettings *rs,
     }
     rs->current_retries += 1;
     return YDB_OK;
-  } catch (const std::exception &e) {
-    return ydb_result_details_fail(rd, YDB_ERR_INTERNAL, e.what());
-  } catch (...) {
-    return ydb_result_details_fail(rd, YDB_ERR_INTERNAL,
-                                   "uncaught C++ exception");
-  }
+  })();
 }
 
 } // extern "C"
