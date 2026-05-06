@@ -31,7 +31,8 @@ TEST(QueryRetrySettings, PerformRetryIncrementsCounter) {
   YdbQueryRetrySettings *rs = ydb_query_retry_settings_create(2, 0, &rd);
   ASSERT_NE(rs, nullptr);
 
-  EXPECT_EQ(ydb_query_perform_retry(rs, &rd), YDB_OK);
+  EXPECT_EQ(ydb_query_perform_retry(rs, &rd), YDB_OK)
+      << rd.message << std::endl;
   EXPECT_EQ(rs->current_retries, 1u);
   EXPECT_EQ(ydb_query_perform_retry(rs, &rd), YDB_OK);
   EXPECT_EQ(rs->current_retries, 2u);
@@ -57,6 +58,38 @@ TEST(QueryRetrySettings, PerformRetryFailsForNonRetriableStatus) {
 
   EXPECT_EQ(ydb_query_perform_retry(rs, &rd), YDB_ERR_RETRY_FAILED);
   EXPECT_EQ(rs->current_retries, 0u);
+
+  ydb_query_retry_settings_free(rs, &rd);
+}
+
+TEST(QueryRetrySettings, TliFailureFlowRetriesAndEventuallySucceeds) {
+  auto rd = MakeDetails();
+  YdbQueryRetrySettings *rs = ydb_query_retry_settings_create(4, 0, &rd);
+  ASSERT_NE(rs, nullptr);
+
+  int attempts = 0;
+  auto do_attempt = [&]() -> ydb_status_t {
+    ++attempts;
+    if (attempts <= 2) {
+      rd.code = YDB_ERR_CONNECTION; // simulate transient link issue (TLI)
+      return YDB_ERR_CONNECTION;
+    }
+    rd.code = YDB_OK;
+    return YDB_OK;
+  };
+
+  for (;;) {
+    const ydb_status_t st = do_attempt();
+    if (st == YDB_OK) {
+      break;
+    }
+
+    ASSERT_EQ(ydb_is_status_retriable(st), 1);
+    ASSERT_EQ(ydb_query_perform_retry(rs, &rd), YDB_OK);
+  }
+
+  EXPECT_EQ(attempts, 3);
+  EXPECT_EQ(rs->current_retries, 2u);
 
   ydb_query_retry_settings_free(rs, &rd);
 }

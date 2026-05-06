@@ -22,7 +22,6 @@ __pycache__
 build
 .cache
 ydb-cpp-sdk
-.github
 
 ydb_certs
 ydb_data

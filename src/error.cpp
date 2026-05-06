@@ -15,7 +15,7 @@ extern "C" {
 int ydb_result_details_init(YdbResultDetails **d) {
   try {
     (*d) = new YdbResultDetails;
-    (*d)->code = 0;
+    (*d)->code = YDB_OK;
     (*d)->message = std::string();
     (*d)->context = std::string();
     return 0;
@@ -48,17 +48,8 @@ const char *get_message(const YdbResultDetails *d) {
 
 // TODO: move to private
 int ydb_is_status_retriable(ydb_status_t sdk_status_code) {
-  using NYdb::EStatus;
-  EStatus s = static_cast<EStatus>(sdk_status_code);
-  switch (s) {
-  case EStatus::ABORTED:
-  case EStatus::UNAVAILABLE:
-  case EStatus::OVERLOADED:
-  case EStatus::CLIENT_RESOURCE_EXHAUSTED:
-  case EStatus::CLIENT_DISCOVERY_FAILED:
-  case EStatus::SESSION_BUSY:
-  case EStatus::SESSION_EXPIRED:
-  case EStatus::TRANSPORT_UNAVAILABLE:
+  switch (sdk_status_code) {
+  case YDB_ERR_CONNECTION:
     return 1;
   default:
     return 0;
