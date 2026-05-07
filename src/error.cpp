@@ -46,7 +46,8 @@ const char *get_message(const YdbResultDetails *d) {
   return d->message.c_str();
 }
 
-// TODO: move to private
+} // extern "C"
+
 int ydb_is_status_retriable(ydb_status_t sdk_status_code) {
   switch (sdk_status_code) {
   case YDB_ERR_CONNECTION:
@@ -55,8 +56,6 @@ int ydb_is_status_retriable(ydb_status_t sdk_status_code) {
     return 0;
   }
 }
-
-} // extern "C"
 
 bool isFatal(YdbResultDetails *rd) {
   return rd->code != YDB_OK;

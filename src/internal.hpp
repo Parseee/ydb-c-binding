@@ -151,3 +151,5 @@ inline ydb_type_t ydb_fail_type_t(YdbResultDetails *rd, ydb_status_t code,
   ydb_result_details_fail(rd, code, msg ? msg : "");
   return YDB_TYPE_UNKNOWN;
 }
+
+int ydb_is_status_retriable(ydb_status_t sdk_status_code);

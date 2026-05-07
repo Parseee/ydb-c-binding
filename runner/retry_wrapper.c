@@ -10,7 +10,6 @@ static const char *details_message(const YdbResultDetails *rd) {
   return get_message(rd);
 }
 
-// TODO: better name format
 static void format_status(ydb_status_t st, const char *op,
                          const YdbResultDetails *rd) {
   if (st != YDB_OK) {
@@ -29,7 +28,6 @@ int main(void) {
   YdbQueryRetrySettings *rs = NULL;
   YdbQueryTransaction *tx = NULL;
 
-  // TODO: fix this pass pointer by value. how does this even work??
   if (ydb_result_details_init(&rd) != 0) {
     fprintf(stderr, "result details creation failed\n");
     return -1;
