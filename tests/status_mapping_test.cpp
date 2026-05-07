@@ -2,7 +2,6 @@
 
 #include "internal.hpp"
 #include "ydb.h"
-#include "ydb_error.h"
 
 #include <ydb-cpp-sdk/client/types/status_codes.h>
 

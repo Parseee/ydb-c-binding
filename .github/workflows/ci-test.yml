@@ -1,0 +1,67 @@
+name: CI Test
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create docker network
+        run: docker network create ydb-net || true
+
+      - name: Start local YDB
+        run: |
+          docker run -d --rm --name ydb-local \
+            --platform linux/amd64 \
+            --network ydb-net \
+            -p 2136:2136 -p 8765:8765 \
+            -e YDB_USE_IN_MEMORY_PDISKS=true \
+            -e GRPC_PORT=2136 \
+            -e MON_PORT=8765 \
+            ghcr.io/ydb-platform/local-ydb:latest
+
+      - name: Wait for YDB endpoint
+        run: |
+          for i in {1..60}; do
+            if docker run --rm --network ydb-net busybox sh -c "nc -z ydb-local 2136"; then
+              echo "YDB is reachable"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "YDB is not reachable on 2136"
+          docker logs ydb-local
+          exit 1
+
+      - name: Build driver image (devcontainer)
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -f .devcontainer/Dockerfile \
+            -t ydb-c-binding-ci:latest \
+            .
+
+      - name: Configure, build and run tests
+        run: |
+          docker run --rm --network ydb-net \
+            -e YDB_ENDPOINT=ydb-local:2136 \
+            -e YDB_DATABASE=/local \
+            -v "$PWD":/workspaces/ydb-c-binding \
+            -w /workspaces/ydb-c-binding \
+            ydb-c-binding-ci:latest \
+            bash -lc "cmake -S . -B build -G Ninja && cmake --build build -j2 && ctest --test-dir build --output-on-failure"
+
+      - name: Dump YDB logs on failure
+        if: failure()
+        run: docker logs ydb-local || true
+
+      - name: Stop YDB
+        if: always()
+        run: docker stop ydb-local || true

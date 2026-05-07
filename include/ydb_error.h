@@ -18,8 +18,6 @@ void ydb_result_details_free(YdbResultDetails *rd);
 
 const char *get_message(const YdbResultDetails *d);
 
-int ydb_is_status_retriable(ydb_status_t sdk_status_code);
-
 #ifdef __cplusplus
 }
 #endif
