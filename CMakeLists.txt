@@ -33,7 +33,7 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     PUBLIC  $<INSTALL_INTERFACE:include>
     PRIVATE ${PROJECT_SOURCE_DIR}
-    PRIVATE /usr/local/include/__ydb_sdk_special_headers/
+    PUBLIC /usr/local/include/__ydb_sdk_special_headers/
 )
 
 include(${PROJECT_SOURCE_DIR}/cmake.install)
