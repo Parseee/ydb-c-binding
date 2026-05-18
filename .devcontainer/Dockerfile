@@ -52,7 +52,8 @@ RUN wget https://apt.llvm.org/llvm.sh && \
     update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-18 160
 
 # Install abseil-cpp
-RUN wget -O abseil-cpp-20230802.0.tar.gz https://github.com/abseil/abseil-cpp/archive/refs/tags/20230802.0.tar.gz && \
+RUN --mount=type=cache,target=/ccache,sharing=locked \
+    wget -O abseil-cpp-20230802.0.tar.gz https://github.com/abseil/abseil-cpp/archive/refs/tags/20230802.0.tar.gz && \
     tar -xvzf abseil-cpp-20230802.0.tar.gz && \
     cd abseil-cpp-20230802.0 && \
     rm -rf build && mkdir build && cd build && \
@@ -63,7 +64,8 @@ RUN wget -O abseil-cpp-20230802.0.tar.gz https://github.com/abseil/abseil-cpp/ar
     cd ../../
 
 # install protobuf
-RUN wget -O protobuf-3.21.12.tar.gz https://github.com/protocolbuffers/protobuf/archive/refs/tags/v3.21.12.tar.gz && \
+RUN --mount=type=cache,target=/ccache,sharing=locked \ 
+    wget -O protobuf-3.21.12.tar.gz https://github.com/protocolbuffers/protobuf/archive/refs/tags/v3.21.12.tar.gz && \
     tar -xvzf protobuf-3.21.12.tar.gz && \
     cd protobuf-3.21.12 && \
     rm -rf build && mkdir build && cd build && \
@@ -79,7 +81,8 @@ RUN wget -O protobuf-3.21.12.tar.gz https://github.com/protocolbuffers/protobuf/
     cd ../../
 
 # Install gRPC
-RUN wget -O grpc-1.54.3.tar.gz https://github.com/grpc/grpc/archive/refs/tags/v1.54.3.tar.gz && \
+RUN --mount=type=cache,target=/ccache,sharing=locked \
+    wget -O grpc-1.54.3.tar.gz https://github.com/grpc/grpc/archive/refs/tags/v1.54.3.tar.gz && \
     tar -xvzf grpc-1.54.3.tar.gz && cd grpc-1.54.3 && \
     rm -rf build && mkdir build && cd build && \
     cmake -G Ninja \
@@ -102,7 +105,8 @@ RUN wget -O grpc-1.54.3.tar.gz https://github.com/grpc/grpc/archive/refs/tags/v1
     cd ../../ 
 
 # Install base64
-RUN wget -O base64-0.5.2.tar.gz https://github.com/aklomp/base64/archive/refs/tags/v0.5.2.tar.gz && \
+RUN --mount=type=cache,target=/ccache,sharing=locked \
+    wget -O base64-0.5.2.tar.gz https://github.com/aklomp/base64/archive/refs/tags/v0.5.2.tar.gz && \
     tar -xvzf base64-0.5.2.tar.gz && cd base64-0.5.2 && \
     rm -rf build && mkdir build && cd build && \
     cmake -G Ninja \
@@ -115,7 +119,8 @@ RUN wget -O base64-0.5.2.tar.gz https://github.com/aklomp/base64/archive/refs/ta
     cd ../../ 
 
 # Install brotli
-RUN wget -O brotli-1.1.0.tar.gz https://github.com/google/brotli/archive/refs/tags/v1.1.0.tar.gz && \
+RUN --mount=type=cache,target=/ccache,sharing=locked \ 
+    wget -O brotli-1.1.0.tar.gz https://github.com/google/brotli/archive/refs/tags/v1.1.0.tar.gz && \
     tar -xvzf brotli-1.1.0.tar.gz && cd brotli-1.1.0 && \
     rm -rf build && mkdir build && cd build && \
     cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache \
@@ -127,7 +132,8 @@ RUN wget -O brotli-1.1.0.tar.gz https://github.com/google/brotli/archive/refs/ta
     cd ../../
 
 # Install jwt-cpp
-RUN wget -O jwt-cpp-0.7.0.tar.gz https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.7.0.tar.gz && \
+RUN --mount=type=cache,target=/ccache,sharing=locked \ 
+    wget -O jwt-cpp-0.7.0.tar.gz https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.7.0.tar.gz && \
     tar -xvzf jwt-cpp-0.7.0.tar.gz && cd jwt-cpp-0.7.0 && \
     rm -rf build && mkdir build && cd build && \
     cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache \
@@ -139,7 +145,8 @@ RUN wget -O jwt-cpp-0.7.0.tar.gz https://github.com/Thalhammer/jwt-cpp/archive/r
     cd ../../
 
 # build the project
-RUN git clone https://github.com/ydb-platform/ydb-cpp-sdk.git && cd ydb-cpp-sdk && \
+RUN --mount=type=cache,target=/ccache,sharing=locked \
+    git clone https://github.com/ydb-platform/ydb-cpp-sdk.git && cd ydb-cpp-sdk && \
     git submodule update --init --recursive && \
     git submodule update --remote --recursive && \
     rm -rf build && cmake --preset release-clang \

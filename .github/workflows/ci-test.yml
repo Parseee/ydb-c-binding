@@ -1,8 +1,7 @@
 name: CI Test
 
 on:
-  push:
-    branches: ["**"]
+  workflow_dispatch:
   pull_request:
 
 jobs:
@@ -40,23 +39,46 @@ jobs:
           docker logs ydb-local
           exit 1
 
-      - name: Build driver image (devcontainer)
-        run: |
-          docker build \
-            --platform linux/amd64 \
-            -f .devcontainer/Dockerfile \
-            -t ydb-c-binding-ci:latest \
-            .
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('CMakeLists.txt', 'src/**', 'include/**', '.devcontainer/Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Build driver image (devcontainer) with layer cache
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .devcontainer/Dockerfile
+          platforms: linux/amd64
+          tags: ydb-c-binding-ci:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
 
       - name: Configure, build and run tests
         run: |
+          mkdir -p .ccache
           docker run --rm --network ydb-net \
             -e YDB_ENDPOINT=ydb-local:2136 \
             -e YDB_DATABASE=/local \
+            -e CCACHE_DIR=/ccache \
             -v "$PWD":/workspaces/ydb-c-binding \
+            -v "$PWD/.ccache":/ccache \
             -w /workspaces/ydb-c-binding \
             ydb-c-binding-ci:latest \
-            bash -lc "cmake -S . -B build -G Ninja && cmake --build build -j2 && ctest --test-dir build --output-on-failure"
+            bash -lc "cmake -S . -B build -G Ninja \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && \
+              cmake --build build -j2 && \
+              ctest --test-dir build --output-on-failure && \
+              ccache -s"
 
       - name: Dump YDB logs on failure
         if: failure()

@@ -30,10 +30,13 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME}
-    PUBLIC  ${PROJECT_SOURCE_DIR}/include
+    PUBLIC  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    PUBLIC  $<INSTALL_INTERFACE:include>
     PRIVATE ${PROJECT_SOURCE_DIR}
-    PUBLIC /usr/local/include/__ydb_sdk_special_headers/
+    PRIVATE /usr/local/include/__ydb_sdk_special_headers/
 )
+
+include(${PROJECT_SOURCE_DIR}/cmake.install)
 
 add_subdirectory(runner)
 
@@ -41,4 +44,3 @@ include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(tests)
 endif()
-

@@ -25,3 +25,5 @@ ydb-cpp-sdk
 
 ydb_certs
 ydb_data
+
+*.pdf

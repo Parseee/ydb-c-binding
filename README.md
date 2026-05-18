@@ -22,6 +22,12 @@ cmake -S . -B build -G Ninja
 cmake --build build -j
 ```
 
+## Install
+
+```bash
+cmake --install build --prefix /usr/local
+```
+
 ## Run tests
 
 ```bash
